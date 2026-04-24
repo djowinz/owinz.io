@@ -1,26 +1,192 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+
+/*@custom-variant dark (&:is(.dark *));*/
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+    --background: #f8f7f4;
+    --sidebar: #f3f1ec;
+    --foreground: #1a1a1a;
+    --muted: #6b6b6b;
+    --edge: #e0dfd8;
+    --accent: #7c3aed;
+    --secondary: #f0efe9;
+    --secondary-foreground: #2a2a2a;
+    --muted-foreground: #666666;
+    --border: #e0dfd8;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+    --color-background: var(--background);
+    --color-foreground: var(--foreground);
+    --font-sans: var(--font-geist-sans);
+    --font-mono: var(--font-geist-mono);
+    --font-fraunces: var(--font-fraunces);
+    --font-fraunces-italic: var(--font-fraunces-italic);
+    --color-secondary: var(--secondary);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-muted: var(--muted);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-accent: var(--accent);
+    --color-border: var(--border);
+    --drop-shadow-indicator: 0px 0px 0px 3px rgba(124, 58, 237, 0.15);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/*@media (prefers-color-scheme: dark) {
+    :root {
+        --background: #141311;
+        --sidebar: #1b1a17;
+        --foreground: #f0ece3;
+        --muted: #8a857a;
+        --edge: #2d2b26;
+        --accent: #b69bff;
+    }
+}*/
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+    background: var(--background);
+    color: var(--foreground);
+}
+
+/* Prose styling for markdown content */
+.prose {
+    @apply text-foreground leading-relaxed;
+}
+
+.prose h1 {
+    @apply text-3xl font-light tracking-tight mt-8 mb-4 text-foreground;
+}
+
+.prose h2 {
+    @apply text-xl font-light tracking-tight mt-10 mb-4 text-foreground;
+}
+
+.prose h3 {
+    @apply text-lg font-medium mt-8 mb-3 text-foreground;
+}
+
+.prose p {
+    @apply mb-6 text-muted-foreground leading-relaxed;
+}
+
+.prose a {
+    @apply text-accent underline underline-offset-4 hover:text-accent/80 transition-colors;
+}
+
+.prose strong {
+    @apply font-semibold text-foreground;
+}
+
+.prose em {
+    @apply italic;
+}
+
+.prose ul {
+    @apply mb-6 pl-6 space-y-2 list-disc;
+}
+
+.prose ol {
+    @apply mb-6 pl-6 space-y-2 list-decimal;
+}
+
+.prose li {
+    @apply text-muted-foreground pl-1;
+}
+
+.prose li::marker {
+    @apply text-accent/60;
+}
+
+.prose blockquote {
+    @apply border-l-2 border-accent/50 pl-6 my-6 italic text-muted-foreground;
+}
+
+.prose code {
+    @apply bg-muted px-1.5 py-0.5 rounded text-sm font-mono text-foreground;
+}
+
+.prose pre {
+    @apply bg-muted p-4 rounded-md overflow-x-auto mb-6;
+}
+
+.prose pre code {
+    @apply bg-transparent p-0;
+}
+
+.prose hr {
+    @apply my-8 border-border;
+}
+
+.prose img {
+    @apply rounded-md my-6;
+}
+
+/* Syntax highlighting for code blocks */
+.hljs {
+    @apply text-foreground;
+}
+
+.hljs-comment,
+.hljs-quote {
+    @apply text-muted-foreground italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+    @apply text-accent;
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-literal,
+.hljs-doctag,
+.hljs-regexp {
+    color: #10b981;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+    color: #f59e0b;
+}
+
+.hljs-attribute,
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type {
+    color: #06b6d4;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+    color: #ec4899;
+}
+
+.hljs-built_in,
+.hljs-deletion {
+    color: #ef4444;
+}
+
+.hljs-formula {
+    @apply bg-muted;
+}
+
+.hljs-emphasis {
+    @apply italic;
+}
+
+.hljs-strong {
+    @apply font-bold;
 }

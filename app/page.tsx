@@ -1,65 +1,37 @@
-import Image from "next/image";
+import { getSeason } from "@/lib/dates";
+import { format } from "date-fns";
 
 export default function Home() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <>
+      {/* Masthead */}
+      <div className="flex justify-between font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-[72px]">
+        <span>owinz.io</span>
+        <span>
+          VOL. IV {getSeason()} &apos;{format(new Date(), "yy")}
+        </span>
+        <span className="flex justify-between items-center">
+          <span className="w-1.75 h-1.75 mr-2 rounded-full bg-accent shadow-[0px_0px_0px_3px_rgba(124,58,237,0.15)]"></span>
+          Available for new work
+        </span>
+      </div>
+
+      {/* Hero */}
+      <div>
+        <h1 className="text-[108px] font-light text-foreground font-fraunces tracking-[-4.32px] leading-28 mb-8">
+          Building{" "}
+          <em className="font-normal text-accent font-fraunces-italic">
+            small, purposeful software
+          </em>{" "}
+          — and writing down what I learn along the way.
+        </h1>
+        <p className="font-sans leading-7 mb-14 text-muted font-medium max-w-2xl">
+          I&apos;m Dyllen, a software engineer, leader, and writer. I love to
+          build software that delights users exploring spaces that resonate with
+          my creative voice. I&apos;m currently working on shipping v1.6 of Omni
+          to enhance how gamers handle overlays.
+        </p>
+      </div>
+    </>
   );
 }
