@@ -1,5 +1,7 @@
+import { ChevronsRight } from "lucide-react";
 import { getSeason } from "@/lib/dates";
 import { format } from "date-fns";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -21,16 +23,32 @@ export default function Home() {
         <h1 className="text-[108px] font-light text-foreground font-fraunces tracking-[-4.32px] leading-28 mb-8">
           Building{" "}
           <em className="font-normal text-accent font-fraunces-italic">
-            small, purposeful software
+            intuitive, purposeful software
           </em>{" "}
           — and writing down what I learn along the way.
         </h1>
         <p className="font-sans leading-7 mb-14 text-muted font-medium max-w-2xl">
           I&apos;m Dyllen, a software engineer, leader, and writer. I love to
-          build software that delights users exploring spaces that resonate with
-          my creative voice. I&apos;m currently working on shipping v1.6 of Omni
+          build software that delights users in spaces that resonate with my
+          creative passions. I&apos;m currently working on shipping v1.6 of Omni
           to enhance how gamers handle overlays.
         </p>
+        <div className="flex gap-3">
+          <Link
+            href="/projects"
+            className="flex align-middle items-center py-3 px-5 bg-foreground text-background text-sm leading-3 transition-all ring-0 hover:ring-4 ring-accent ring-inset"
+          >
+            See the work
+            <ChevronsRight className="w-4 ml-2" />
+          </Link>
+          <Link
+            href="/writing"
+            className="flex align-middle items-center py-3 px-5 bg-background text-sm leading-3 border border-edge transition-all hover:border-foreground"
+          >
+            Read the writing
+            <ChevronsRight className="w-4 ml-2" />
+          </Link>
+        </div>
       </div>
     </>
   );

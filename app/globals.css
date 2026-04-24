@@ -29,6 +29,7 @@
     --color-muted-foreground: var(--muted-foreground);
     --color-accent: var(--accent);
     --color-border: var(--border);
+    --color-edge: var(--edge);
     --drop-shadow-indicator: 0px 0px 0px 3px rgba(124, 58, 237, 0.15);
 }
 

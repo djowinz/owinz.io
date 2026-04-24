@@ -21,7 +21,7 @@ export default function Sidebar() {
     <div className="absolute top-0 left-0 bottom-0 right-0 flex flex-col p-8">
       {/* Portrait */}
       <div className="mb-6">
-        <div className="mb-6 cursor-pointer">
+        <div className="mb-6">
           <DistortionPortrait
             src="/self-portrait.svg"
             alt="Self portrait illustration"
@@ -39,9 +39,7 @@ export default function Sidebar() {
         {/* Blurb */}
         <p className="text-sm text-muted-foreground leading-relaxed">
           Leader, Developer & Writer.
-          <span className="block">
-            Building carefully, sharing the process.
-          </span>
+          <span className="block">Solving problems, sharing the process.</span>
         </p>
       </div>
 
