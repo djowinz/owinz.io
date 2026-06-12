@@ -13,6 +13,12 @@ const navItems = [
   { href: "/contact", label: "Contact" },
 ];
 
+function isActive(pathname: string, href: string): boolean {
+  const current = pathname.replace(/\/+$/, "") || "/";
+  if (href === "/") return current === "/";
+  return current === href || current.startsWith(`${href}/`);
+}
+
 export default function Sidebar() {
   const pathname = usePathname();
 
@@ -53,7 +59,7 @@ export default function Sidebar() {
             href={item.href}
             className={cn(
               "text-sm font-medium tracking-wide transition-colors duration-200 py-1 cursor-none",
-              pathname === item.href
+              isActive(pathname, item.href)
                 ? "text-accent font-fraunces font-semibold italic"
                 : "text-muted-foreground hover:text-accent",
             )}
