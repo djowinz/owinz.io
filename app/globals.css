@@ -44,6 +44,12 @@
     }
 }*/
 
+html {
+    /* Reserve the scrollbar gutter so short pages (no scrollbar) don't
+       widen the viewport and shift the centered layout. */
+    scrollbar-gutter: stable;
+}
+
 body {
     background: var(--background);
     color: var(--foreground);
