@@ -49,6 +49,11 @@ body {
     color: var(--foreground);
 }
 
+::selection {
+    background-color: var(--accent);
+    color: white;
+}
+
 /* Prose styling for markdown content */
 .prose {
     @apply text-foreground leading-relaxed;

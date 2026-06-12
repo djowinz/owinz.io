@@ -2,6 +2,8 @@ import { ChevronsRight } from "lucide-react";
 import { getSeason } from "@/lib/dates";
 import { format } from "date-fns";
 import Link from "next/link";
+import RecentContent from "@/components/RecentContent";
+import { CONTENT_TYPE } from "@/lib/markdown";
 
 export default function Home() {
   return (
@@ -19,7 +21,7 @@ export default function Home() {
       </div>
 
       {/* Hero */}
-      <div>
+      <div className="mb-24">
         <h1 className="text-[108px] font-light text-foreground font-fraunces tracking-[-4.32px] leading-28 mb-8">
           Building{" "}
           <em className="font-normal text-accent font-fraunces-italic">
@@ -36,19 +38,35 @@ export default function Home() {
         <div className="flex gap-3">
           <Link
             href="/projects"
-            className="flex align-middle items-center py-3 px-5 bg-foreground text-background text-sm leading-3 transition-all ring-0 hover:ring-4 ring-accent ring-inset"
+            className="flex align-middle items-center py-3 px-5 bg-foreground text-background text-sm leading-3 transition-all ring-0 hover:ring-4 ring-accent ring-inset cursor-none"
           >
             See the work
             <ChevronsRight className="w-4 ml-2" />
           </Link>
           <Link
             href="/writing"
-            className="flex align-middle items-center py-3 px-5 bg-background text-sm leading-3 border border-edge transition-all hover:border-foreground"
+            className="flex align-middle items-center py-3 px-5 bg-background text-sm leading-3 border border-edge transition-all hover:border-foreground cursor-none"
           >
             Read the writing
             <ChevronsRight className="w-4 ml-2" />
           </Link>
         </div>
+      </div>
+
+      {/* Content Sections */}
+      <div className="flex gap-16">
+        <RecentContent
+          contentConfig={CONTENT_TYPE.projects}
+          title="Selected work"
+          indexPath="/projects"
+          indexLabel="Index"
+        />
+        <RecentContent
+          contentConfig={CONTENT_TYPE.writing}
+          title="Recently"
+          indexPath="/writing"
+          indexLabel="Archive"
+        />
       </div>
     </>
   );

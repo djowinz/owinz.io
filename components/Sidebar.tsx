@@ -53,7 +53,7 @@ export default function Sidebar() {
             key={item.href}
             href={item.href}
             className={cn(
-              "text-sm font-medium tracking-wide transition-colors duration-200 py-1",
+              "text-sm font-medium tracking-wide transition-colors duration-200 py-1 cursor-none",
               pathname === item.href
                 ? "text-accent font-fraunces font-semibold italic"
                 : "text-muted-foreground hover:text-accent",
@@ -68,10 +68,10 @@ export default function Sidebar() {
       <div className="flex-1" />
 
       {/* Footer */}
-      <div className="w-full flex items-center justify-between self-end">
+      {/*<div className="w-full flex items-center justify-between self-end">
         <p className="text-xs text-muted-foreground">Crafted with care</p>
         <ThemeToggle />
-      </div>
+      </div>*/}
     </div>
   );
 }
