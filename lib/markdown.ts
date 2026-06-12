@@ -8,7 +8,6 @@ import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 import { readingTime } from "reading-time-estimator";
-import { compareAsc, compareDesc } from "date-fns/fp";
 
 const contentDirectory = path.join(process.cwd(), "content");
 const WRITING_DIR = path.join(contentDirectory, "writing");
@@ -62,6 +61,11 @@ export type RecentProject = Pick<ProjectPost, "title" | "slug" | "category"> & {
   date: Date;
 };
 
+function dateValue(d: Date): number {
+  const t = d.getTime();
+  return Number.isNaN(t) ? -Infinity : t;
+}
+
 async function markdownToHtml(markdown: string): Promise<string> {
   const result = await unified()
     .use(remarkParse)
@@ -73,18 +77,20 @@ async function markdownToHtml(markdown: string): Promise<string> {
   return result.toString();
 }
 
-export async function getWritingPosts(): Promise<WritingPost[]> {
-  if (!fs.existsSync(WRITING_DIR)) {
+export async function getWritingPosts(
+  dir: string = WRITING_DIR,
+): Promise<WritingPost[]> {
+  if (!fs.existsSync(dir)) {
     return [];
   }
 
-  const fileNames = fs.readdirSync(WRITING_DIR);
+  const fileNames = fs.readdirSync(dir);
   const posts = await Promise.all(
     fileNames
       .filter((fileName) => fileName.endsWith(".md"))
       .map(async (fileName) => {
         const slug = fileName.replace(/\.md$/, "");
-        const fullPath = path.join(WRITING_DIR, fileName);
+        const fullPath = path.join(dir, fileName);
         const fileContents = fs.readFileSync(fullPath, "utf8");
         const { data, content } = matter(fileContents);
         const htmlContent = await markdownToHtml(content);
@@ -100,18 +106,17 @@ export async function getWritingPosts(): Promise<WritingPost[]> {
       }),
   );
 
-  // Sort by date descending
-  return posts.sort((a, b) => {
-    const dateA = new Date(a.date);
-    const dateB = new Date(b.date);
-    return dateB.getTime() - dateA.getTime();
-  });
+  // Sort by date descending; undated posts last
+  return posts.sort(
+    (a, b) => dateValue(new Date(b.date)) - dateValue(new Date(a.date)),
+  );
 }
 
 export async function getWritingPost(
   slug: string,
+  dir: string = WRITING_DIR,
 ): Promise<WritingPost | null> {
-  const fullPath = path.join(WRITING_DIR, `${slug}.md`);
+  const fullPath = path.join(dir, `${slug}.md`);
 
   if (!fs.existsSync(fullPath)) {
     return null;
@@ -193,17 +198,19 @@ export async function getProject(slug: string): Promise<ProjectPost | null> {
 export async function getRecentContent(
   limit = 5,
   content: keyof typeof CONTENT_TYPE,
+  dir: string = CONTENT_TYPE[content].dir,
 ): Promise<RecentPost[] | RecentProject[]> {
   const type = CONTENT_TYPE[content].type;
-  const directory = CONTENT_TYPE[content].dir;
-  if (!fs.existsSync(directory)) {
+  if (!fs.existsSync(dir)) {
     return [];
   }
 
-  const fileNames = fs.readdirSync(directory);
+  const fileNames = fs.readdirSync(dir);
   const collection = await Promise.all(
-    fileNames.map((fileName) => {
-      const fullPath = path.join(directory, fileName);
+    fileNames
+      .filter((fileName) => fileName.endsWith(".md"))
+      .map((fileName) => {
+        const fullPath = path.join(dir, fileName);
       const fileContents = fs.readFileSync(fullPath, "utf8");
       const { data, content } = matter(fileContents);
 
@@ -231,7 +238,7 @@ export async function getRecentContent(
     }),
   );
 
-  // sort by date & limit
-  collection.sort((a, b) => compareAsc(a.date, b.date));
+  // sort newest-first (undated last) & limit
+  collection.sort((a, b) => dateValue(b.date) - dateValue(a.date));
   return collection.slice(0, limit);
 }
