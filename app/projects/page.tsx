@@ -12,7 +12,7 @@ export default async function Projects() {
   const { past: pastTalks } = await getTalks();
 
   return (
-    <div className="max-w-[760px] mx-auto">
+    <div className="max-w-[880px] mx-auto">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2.5 font-mono font-medium uppercase text-muted text-[11px] tracking-[1.3px] mb-12">
         <span>Index</span>

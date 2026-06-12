@@ -29,7 +29,7 @@ const NO_REPLIES = [
 
 export default function Contact() {
   return (
-    <div className="max-w-[820px] mx-auto">
+    <div className="max-w-[880px] mx-auto">
       {/* Masthead */}
       <div className="flex justify-between items-baseline font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         <span>Correspondence</span>
