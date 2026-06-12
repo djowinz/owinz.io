@@ -12,6 +12,7 @@ import { readingTime } from "reading-time-estimator";
 const contentDirectory = path.join(process.cwd(), "content");
 const WRITING_DIR = path.join(contentDirectory, "writing");
 const PROJECT_DIR = path.join(contentDirectory, "projects");
+const TALKS_DIR = path.join(contentDirectory, "talks");
 const WRITING_TYPE = "writing";
 const PROJECT_TYPE = "projects";
 
@@ -206,6 +207,72 @@ export async function getProject(
   }
 
   return parseProject(slug, fs.readFileSync(fullPath, "utf8"));
+}
+
+export interface Talk {
+  slug: string;
+  title: string;
+  date: string;
+  venue?: string;
+  format?: string;
+  status?: string;
+  links: { label: string; url: string }[];
+}
+
+export async function getTalks(
+  now: Date = new Date(),
+  dir: string = TALKS_DIR,
+): Promise<{ upcoming: Talk[]; past: Talk[] }> {
+  if (!fs.existsSync(dir)) {
+    return { upcoming: [], past: [] };
+  }
+
+  const talks = fs
+    .readdirSync(dir)
+    .filter((fileName) => fileName.endsWith(".md"))
+    .map((fileName) => {
+      const { data } = matter(
+        fs.readFileSync(path.join(dir, fileName), "utf8"),
+      );
+      const links = Object.entries(
+        (data.links ?? {}) as Record<string, string>,
+      ).map(([key, url]) => ({
+        label: key.charAt(0).toUpperCase() + key.slice(1),
+        url,
+      }));
+      return {
+        slug: fileName.replace(/\.md$/, ""),
+        title: data.title || "Untitled",
+        date: data.date || "",
+        venue: data.venue,
+        format: data.format,
+        status: data.status,
+        upcoming: typeof data.upcoming === "boolean" ? data.upcoming : undefined,
+        links,
+      };
+    });
+
+  const isUpcoming = (t: (typeof talks)[number]) =>
+    t.upcoming ?? dateValue(new Date(t.date)) >= now.getTime();
+
+  const byDateDesc = (a: Talk, b: Talk) =>
+    dateValue(new Date(b.date)) - dateValue(new Date(a.date));
+
+  const strip = ({
+    upcoming: _upcoming,
+    ...talk
+  }: Talk & { upcoming?: boolean }): Talk => talk;
+
+  return {
+    upcoming: talks
+      .filter(isUpcoming)
+      .map(strip)
+      .sort((a, b) => -byDateDesc(a, b)),
+    past: talks
+      .filter((t) => !isUpcoming(t))
+      .map(strip)
+      .sort(byDateDesc),
+  };
 }
 
 export async function getRecentContent(

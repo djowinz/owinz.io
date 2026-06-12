@@ -3,6 +3,7 @@ import path from "path";
 import {
   getProjects,
   getRecentContent,
+  getTalks,
   getWritingPost,
   getWritingPosts,
 } from "../lib/markdown";
@@ -58,6 +59,36 @@ describe("projects", () => {
     const beta = projects[1];
     expect(beta.role).toBeUndefined();
     expect(beta.year).toBe("2023");
+  });
+});
+
+const FIXTURE_TALKS = path.join(__dirname, "fixtures", "content", "talks");
+
+describe("talks", () => {
+  it("partitions upcoming vs past by date", async () => {
+    const { upcoming, past } = await getTalks(
+      new Date("2026-06-12"),
+      FIXTURE_TALKS,
+    );
+    expect(upcoming.map((t) => t.title)).toEqual(["A Future Talk"]);
+    expect(past.map((t) => t.title)).toEqual(["A Past Talk"]);
+  });
+
+  it("maps links to labeled artifacts", async () => {
+    const { past } = await getTalks(new Date("2026-06-12"), FIXTURE_TALKS);
+    expect(past[0].links).toEqual([
+      { label: "Slides", url: "https://example.com/slides" },
+      { label: "Video", url: "https://example.com/video" },
+    ]);
+  });
+
+  it("returns empty arrays when the directory is empty or missing", async () => {
+    const { upcoming, past } = await getTalks(
+      new Date(),
+      path.join(FIXTURE_TALKS, "nope"),
+    );
+    expect(upcoming).toEqual([]);
+    expect(past).toEqual([]);
   });
 });
 
