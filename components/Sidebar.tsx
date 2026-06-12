@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { DistortionPortrait } from "@/components/DistortionPortrait";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -68,10 +67,10 @@ export default function Sidebar() {
       <div className="flex-1" />
 
       {/* Footer */}
-      {/*<div className="w-full flex items-center justify-between self-end">
-        <p className="text-xs text-muted-foreground">Crafted with care</p>
-        <ThemeToggle />
-      </div>*/}
+      <div className="w-full flex items-center justify-between font-mono text-[11px] tracking-[0.2px] text-muted-foreground">
+        <span>MMXXVI</span>
+        <span>◐</span>
+      </div>
     </div>
   );
 }

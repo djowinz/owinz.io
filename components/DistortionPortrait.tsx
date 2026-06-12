@@ -20,7 +20,6 @@ export function DistortionPortrait({
 }: DistortionPortraitProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
-  const animationRef = useRef<number | null>(null);
   const [isLoaded, setIsLoaded] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === "dark";
@@ -56,7 +55,6 @@ export function DistortionPortrait({
       ctx.globalAlpha = 0.9;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
-      animationRef.current = requestAnimationFrame(drawDistortion);
       return;
     }
 
@@ -77,7 +75,6 @@ export function DistortionPortrait({
       ctx.globalAlpha = 0.9;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
-      animationRef.current = requestAnimationFrame(drawDistortion);
       return;
     }
 
@@ -136,8 +133,6 @@ export function DistortionPortrait({
     }
 
     ctx.putImageData(outputData, 0, 0);
-
-    animationRef.current = requestAnimationFrame(drawDistortion);
   }, [isDark]);
 
   useEffect(() => {
@@ -151,14 +146,17 @@ export function DistortionPortrait({
   }, [src]);
 
   useEffect(() => {
-    if (isLoaded) {
-      animationRef.current = requestAnimationFrame(drawDistortion);
-    }
+    if (!isLoaded) return;
+
+    let frame: number;
+    const loop = () => {
+      drawDistortion();
+      frame = requestAnimationFrame(loop);
+    };
+    frame = requestAnimationFrame(loop);
 
     return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
+      cancelAnimationFrame(frame);
     };
   }, [isLoaded, drawDistortion]);
 

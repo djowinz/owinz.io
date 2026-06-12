@@ -258,10 +258,10 @@ export async function getTalks(
   const byDateDesc = (a: Talk, b: Talk) =>
     dateValue(new Date(b.date)) - dateValue(new Date(a.date));
 
-  const strip = ({
-    upcoming: _upcoming,
-    ...talk
-  }: Talk & { upcoming?: boolean }): Talk => talk;
+  const strip = (t: Talk & { upcoming?: boolean }): Talk => {
+    const { slug, title, date, venue, format, status, links } = t;
+    return { slug, title, date, venue, format, status, links };
+  };
 
   return {
     upcoming: talks

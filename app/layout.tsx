@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import Sidebar from "@/components/Sidebar";
 import CursorWrangler from "@/components/CursorWrangler";
+import { SITE } from "@/lib/site";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,8 +32,11 @@ const frauncesItalic = Fraunces({
 });
 
 export const metadata: Metadata = {
-  title: "Owinz - Personal Journey",
-  description: "A personal space to share my work, thoughts, and experiences",
+  title: {
+    default: SITE.title,
+    template: "%s — owinz.io",
+  },
+  description: SITE.description,
 };
 
 export default function RootLayout({
