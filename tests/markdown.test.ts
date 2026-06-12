@@ -1,12 +1,19 @@
 import { describe, it, expect } from "vitest";
 import path from "path";
 import {
+  getProjects,
   getRecentContent,
   getWritingPost,
   getWritingPosts,
 } from "../lib/markdown";
 
 const FIXTURE_WRITING = path.join(__dirname, "fixtures", "content", "writing");
+const FIXTURE_PROJECTS = path.join(
+  __dirname,
+  "fixtures",
+  "content",
+  "projects",
+);
 
 describe("content layer", () => {
   it("loads writing posts from content/writing", async () => {
@@ -31,6 +38,26 @@ describe("getRecentContent", () => {
   it("respects the limit", async () => {
     const recent = await getRecentContent(1, "writing", FIXTURE_WRITING);
     expect(recent).toHaveLength(1);
+  });
+});
+
+describe("projects", () => {
+  it("exposes factsheet fields and derives year", async () => {
+    const projects = await getProjects(FIXTURE_PROJECTS);
+    const alpha = projects.find((p) => p.slug === "alpha")!;
+    expect(alpha.role).toBe("Solo project");
+    expect(alpha.status).toBe("Shipped");
+    expect(alpha.platform).toBe("Web");
+    expect(alpha.order).toBe(1);
+    expect(alpha.year).toBe("2024");
+  });
+
+  it("sorts by order and degrades gracefully without optional fields", async () => {
+    const projects = await getProjects(FIXTURE_PROJECTS);
+    expect(projects.map((p) => p.slug)).toEqual(["alpha", "beta"]);
+    const beta = projects[1];
+    expect(beta.role).toBeUndefined();
+    expect(beta.year).toBe("2023");
   });
 });
 

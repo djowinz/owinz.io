@@ -50,6 +50,11 @@ export interface ProjectPost {
   challenge: string;
   technologies: string[];
   category?: string;
+  role?: string;
+  status?: string;
+  platform?: string;
+  order: number;
+  year?: string;
   liveUrl?: string;
   sourceUrl?: string;
   image?: string;
@@ -136,50 +141,13 @@ export async function getWritingPost(
   };
 }
 
-export async function getProjects(): Promise<ProjectPost[]> {
-  if (!fs.existsSync(PROJECT_DIR)) {
-    return [];
-  }
-
-  const fileNames = fs.readdirSync(PROJECT_DIR);
-  const projects = await Promise.all(
-    fileNames
-      .filter((fileName) => fileName.endsWith(".md"))
-      .map(async (fileName) => {
-        const slug = fileName.replace(/\.md$/, "");
-        const fullPath = path.join(PROJECT_DIR, fileName);
-        const fileContents = fs.readFileSync(fullPath, "utf8");
-        const { data, content } = matter(fileContents);
-        const htmlContent = await markdownToHtml(content);
-
-        return {
-          slug,
-          title: data.title || "Untitled",
-          description: data.description || "",
-          purpose: data.purpose || "",
-          challenge: data.challenge || "",
-          technologies: data.technologies || [],
-          liveUrl: data.liveUrl,
-          sourceUrl: data.sourceUrl,
-          image: data.image,
-          content: htmlContent,
-        };
-      }),
-  );
-
-  return projects;
-}
-
-export async function getProject(slug: string): Promise<ProjectPost | null> {
-  const fullPath = path.join(PROJECT_DIR, `${slug}.md`);
-
-  if (!fs.existsSync(fullPath)) {
-    return null;
-  }
-
-  const fileContents = fs.readFileSync(fullPath, "utf8");
+async function parseProject(
+  slug: string,
+  fileContents: string,
+): Promise<ProjectPost> {
   const { data, content } = matter(fileContents);
   const htmlContent = await markdownToHtml(content);
+  const launch = data.launchDate ? new Date(data.launchDate) : null;
 
   return {
     slug,
@@ -188,11 +156,56 @@ export async function getProject(slug: string): Promise<ProjectPost | null> {
     purpose: data.purpose || "",
     challenge: data.challenge || "",
     technologies: data.technologies || [],
+    category: data.category,
+    role: data.role,
+    status: data.status,
+    platform: data.platform,
+    order: typeof data.order === "number" ? data.order : 0,
+    year:
+      launch && !Number.isNaN(launch.getTime())
+        ? String(launch.getFullYear())
+        : undefined,
     liveUrl: data.liveUrl,
     sourceUrl: data.sourceUrl,
     image: data.image,
     content: htmlContent,
+    launchDate: data.launchDate,
   };
+}
+
+export async function getProjects(
+  dir: string = PROJECT_DIR,
+): Promise<ProjectPost[]> {
+  if (!fs.existsSync(dir)) {
+    return [];
+  }
+
+  const fileNames = fs.readdirSync(dir);
+  const projects = await Promise.all(
+    fileNames
+      .filter((fileName) => fileName.endsWith(".md"))
+      .map((fileName) =>
+        parseProject(
+          fileName.replace(/\.md$/, ""),
+          fs.readFileSync(path.join(dir, fileName), "utf8"),
+        ),
+      ),
+  );
+
+  return projects.sort((a, b) => a.order - b.order);
+}
+
+export async function getProject(
+  slug: string,
+  dir: string = PROJECT_DIR,
+): Promise<ProjectPost | null> {
+  const fullPath = path.join(dir, `${slug}.md`);
+
+  if (!fs.existsSync(fullPath)) {
+    return null;
+  }
+
+  return parseProject(slug, fs.readFileSync(fullPath, "utf8"));
 }
 
 export async function getRecentContent(

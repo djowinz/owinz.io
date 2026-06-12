@@ -9,6 +9,10 @@ technologies:
   - PostgreSQL
   - Tailwind CSS
 category: Tooling
+role: "Solo project"
+status: "Shipped"
+platform: "Web"
+order: 4
 liveUrl: "https://syntax.dev"
 sourceUrl: "https://github.com/username/syntax"
 launchDate: "March 15, 2023"

@@ -9,6 +9,10 @@ technologies:
   - Node.js
   - MongoDB
 category: Personal Finance
+role: "Design, engineering"
+status: "Shipped · v1.3"
+platform: "Web"
+order: 1
 liveUrl: "https://chronicle.finance"
 sourceUrl: "https://github.com/username/chronicle"
 launchDate: "March 15, 2026"

@@ -9,6 +9,10 @@ technologies:
   - FastAPI
   - Vue.js
 category: Color Tooling
+role: "Design, ML, frontend"
+status: "Shipped"
+platform: "Web"
+order: 3
 liveUrl: "https://palette.design"
 sourceUrl: "https://github.com/username/palette"
 launchDate: "March 15, 2024"

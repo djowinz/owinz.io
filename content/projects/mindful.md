@@ -9,6 +9,10 @@ technologies:
   - SQLite
   - Expo
 category: Meditation
+role: "Solo project"
+status: "Shipped"
+platform: "iOS & Android"
+order: 2
 liveUrl: "https://mindful.app"
 sourceUrl: "https://github.com/username/mindful"
 launchDate: "March 15, 2025"
