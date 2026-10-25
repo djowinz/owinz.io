@@ -53,16 +53,16 @@ export async function buildLlmsTxt(): Promise<string> {
     ].join("\n"),
   );
 
-  const talks = [...upcoming, ...past];
+  const talkLine = (when: string) => (talk: (typeof upcoming)[number]) => {
+    const links = talk.links.map((link) => `[${link.label.replace(/[[\]]/g, "")}](${link.url})`).join(", ");
+    return `- ${talk.title}${talk.venue ? `, ${talk.venue}` : ""} (${when}, ${displayDate(talk.date) ?? talk.date})${links ? `: ${links}` : ""}`;
+  };
+  const talks = [...upcoming.map(talkLine("upcoming")), ...past.map(talkLine("past"))];
   sections.push(
     [
       "## Talks",
       "",
-      talks.length
-        ? talks
-            .map((talk) => `- ${talk.title}${talk.venue ? `, ${talk.venue}` : ""}${talk.date ? ` (${displayDate(talk.date) ?? talk.date})` : ""}`)
-            .join("\n")
-        : `- Currently scheduling. Speaking invitations: ${SITE.email}`,
+      talks.length ? talks.join("\n") : `- Currently scheduling. Speaking invitations: ${SITE.email}`,
       `- [Talks page](${absoluteUrl("/talks")})`,
     ].join("\n"),
   );

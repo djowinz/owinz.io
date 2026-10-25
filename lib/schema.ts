@@ -149,23 +149,42 @@ export function projectListSchema(projects: ProjectPost[]): Thing {
   };
 }
 
+const ONLINE = /\b(online|virtual|remote|livestream|webinar|podcast)\b/i;
+
+function eventStatus(status: string | undefined): string {
+  if (status && /cancel/i.test(status)) return "https://schema.org/EventCancelled";
+  if (status && /postpone/i.test(status)) return "https://schema.org/EventPostponed";
+  return "https://schema.org/EventScheduled";
+}
+
+/** One Event per talk; each lives at its anchor on /talks/. */
 export function talkSchemas(talks: Talk[]): Thing[] {
   return talks
     .filter((talk) => isoDate(talk.date))
-    .map((talk) => ({
-      "@context": "https://schema.org",
-      "@type": "Event",
-      name: talk.title,
-      startDate: isoDate(talk.date),
-      eventStatus: "https://schema.org/EventScheduled",
-      ...(talk.venue && {
-        location: { "@type": "Place", name: talk.venue, address: talk.venue },
-      }),
-      performer: person,
-      organizer: talk.venue ? { "@type": "Organization", name: talk.venue } : undefined,
-      url: absoluteUrl("/talks"),
-      sameAs: talk.links.map((link) => link.url),
-    }));
+    .map((talk) => {
+      const url = `${absoluteUrl("/talks")}#${talk.slug}`;
+      // No venue, or a venue like "Online": a virtual event. A physical venue
+      // with a livestream-ish format is mixed.
+      const virtual = !talk.venue || ONLINE.test(talk.venue);
+      const mode = virtual ? "Online" : ONLINE.test(talk.format ?? "") ? "Mixed" : "Offline";
+      return {
+        "@context": "https://schema.org",
+        "@type": "Event",
+        "@id": url,
+        url,
+        name: talk.title,
+        description: [talk.format, talk.venue && `at ${talk.venue}`].filter(Boolean).join(" ") || `A talk by ${SITE.name}`,
+        startDate: isoDate(talk.date),
+        eventStatus: eventStatus(talk.status),
+        eventAttendanceMode: `https://schema.org/${mode}EventAttendanceMode`,
+        location: virtual
+          ? { "@type": "VirtualLocation", url, ...(talk.venue && { name: talk.venue }) }
+          : { "@type": "Place", name: talk.venue, address: talk.venue },
+        performer: person,
+        ...(!virtual && { organizer: { "@type": "Organization", name: talk.venue } }),
+        ...(talk.links.length > 0 && { sameAs: talk.links.map((link) => link.url) }),
+      };
+    });
 }
 
 export function contactPageSchema(): Thing {
