@@ -16,11 +16,12 @@ import {
   photoFileName,
   publish,
   restore,
+  draftInput,
   savePost,
-  toInput,
   unpublish,
 } from "../lib/cms/posts";
 import { checkPostForPublish, localPhotoNames, slugify, type PostInput } from "../lib/cms/validate";
+import { createTerm } from "../lib/cms/taxonomy";
 import { testDb } from "./helpers/db";
 
 let db: Db;
@@ -36,7 +37,7 @@ const contributor: Actor = { id: "contrib", role: "contributor" };
 const otherContributor: Actor = { id: "contrib-2", role: "contributor" };
 
 beforeEach(async () => {
-  await db.execute(sql`truncate users, posts, assets, revisions cascade`);
+  await db.execute(sql`truncate users, posts, assets, revisions, terms cascade`);
   for (const a of [editor, writer, contributor, otherContributor]) {
     await db.insert(users).values({ id: a.id, name: `${a.id} name`, email: `${a.id}@example.com`, role: a.role });
   }
@@ -46,8 +47,8 @@ const ready = (overrides: Partial<PostInput> = {}): PostInput => ({
   title: "A finished post",
   slug: "a-finished-post",
   excerpt: "An excerpt that is long enough to read well in search results without being cut off.",
-  category: "Engineering",
-  tags: ["one"],
+  categoryId: null,
+  tagIds: [],
   date: "2026-03-15",
   updated: null,
   byline: null,
@@ -180,7 +181,7 @@ describe("history", () => {
     await savePost(db, writer, created.id, ready({ title: "Version two" }), v1.post.updatedAt);
     const [, versionOne] = await listRevisions(db, { postId: created.id }, "autosave");
 
-    const restored = await restore(db, writer, created.id, versionOne.id);
+    const { post: restored } = await restore(db, writer, created.id, versionOne.id);
     expect(restored.title).toBe("Version one");
     const titles = (await listRevisions(db, { postId: created.id })).map((r) => (r.snapshot as unknown as PostInput).title);
     expect(titles).toContain("Version two"); // the pre-restore draft is in the history
@@ -237,8 +238,12 @@ describe("photos", () => {
   });
 
   it("keeps the round trip lossless", async () => {
-    const post = await edited(writer, { tags: [" a ", "a", "b"], byline: "  ", category: "" });
-    expect(toInput(post)).toMatchObject({ tags: ["a", "b"], byline: null, category: null });
+    const [a, b] = await Promise.all([
+      createTerm(db, writer, { kind: "tag", collection: "writing", name: "a" }),
+      createTerm(db, writer, { kind: "tag", collection: "writing", name: "b" }),
+    ]);
+    const post = await edited(writer, { tagIds: [a.id, a.id, b.id], byline: "  ", categoryId: "" as unknown as null });
+    expect(await draftInput(db, post)).toMatchObject({ tagIds: [a.id, b.id], byline: null, categoryId: null });
   });
 });
 

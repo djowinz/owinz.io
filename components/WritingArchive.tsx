@@ -1,65 +1,45 @@
-"use client";
-
+import { format } from "date-fns";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { readingTime } from "reading-time-estimator";
+import type { WritingPost } from "@/lib/content";
+import { parseDate } from "@/lib/dates";
+import { isoDate } from "@/lib/seo";
 
 export interface ArchiveEntry {
   slug: string;
   title: string;
   excerpt: string;
-  category: string;
+  category?: { name: string; slug: string };
   year: string;
   dateDisplay: string;
   dateIso?: string;
   readDisplay: string;
 }
 
+export function toArchiveEntries(posts: WritingPost[]): ArchiveEntry[] {
+  return posts.map((post) => {
+    const date = parseDate(post.date);
+    return {
+      slug: post.slug,
+      title: post.title,
+      excerpt: post.excerpt,
+      category: post.categoryRef,
+      year: date ? format(date, "yyyy") : "Undated",
+      dateDisplay: date ? format(date, "MMM dd") : "—",
+      dateIso: isoDate(post.date),
+      readDisplay: `${readingTime(post.markdown).minutes} min`,
+    };
+  });
+}
+
+/** Posts grouped by year, newest first. Rendered on the server: no client JavaScript. */
 export default function WritingArchive({ entries }: { entries: ArchiveEntry[] }) {
-  const [active, setActive] = useState("All");
-
-  const categories = useMemo(() => {
-    const unique = Array.from(
-      new Set(entries.map((e) => e.category).filter(Boolean)),
-    );
-    return ["All", ...unique];
-  }, [entries]);
-
-  const visible =
-    active === "All" ? entries : entries.filter((e) => e.category === active);
-
-  const years = useMemo(() => {
-    const grouped = new Map<string, ArchiveEntry[]>();
-    for (const entry of visible) {
-      const group = grouped.get(entry.year) ?? [];
-      group.push(entry);
-      grouped.set(entry.year, group);
-    }
-    return Array.from(grouped.entries()).sort(([a], [b]) => b.localeCompare(a));
-  }, [visible]);
+  const grouped = new Map<string, ArchiveEntry[]>();
+  for (const entry of entries) grouped.set(entry.year, [...(grouped.get(entry.year) ?? []), entry]);
+  const years = [...grouped.entries()].sort(([a], [b]) => b.localeCompare(a));
 
   return (
     <>
-      {/* Tag filter row */}
-      <div className="flex flex-wrap gap-2 sm:gap-3 mb-10 sm:mb-14 font-mono text-[11px] tracking-[0.7px]">
-        {categories.map((category) => {
-          const isActive = category === active;
-          return (
-            <button
-              key={category}
-              onClick={() => setActive(category)}
-              className={`px-3 py-1.5 border transition-colors cursor-none ${
-                isActive
-                  ? "border-foreground bg-foreground text-background"
-                  : "border-edge text-muted hover:border-foreground"
-              }`}
-            >
-              {category}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Year sections */}
       {years.map(([year, posts]) => (
         <section key={year} className="mb-14">
           <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[80px_1fr] gap-6 items-baseline border-t border-foreground pt-5 mb-2">
@@ -71,38 +51,36 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
             </div>
           </div>
           {posts.map((post) => (
-            <Link
+            <article
               key={post.slug}
-              href={`/writing/${post.slug}`}
-              className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 sm:grid-cols-[80px_1fr_90px] sm:gap-6 items-start py-5 sm:py-6 border-t border-edge last:border-b cursor-none transition-colors hover:bg-accent/5"
+              className="relative grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 sm:grid-cols-[80px_1fr_90px] sm:gap-6 items-start py-5 sm:py-6 border-t border-edge last:border-b transition-colors hover:bg-accent/5"
             >
-              <time
-                dateTime={post.dateIso}
-                className="font-mono text-muted text-[11px] tracking-[0.7px] sm:pt-1.5"
-              >
+              <time dateTime={post.dateIso} className="font-mono text-muted text-[11px] tracking-[0.7px] sm:pt-1.5">
                 {post.dateDisplay}
               </time>
               <div className="order-last col-span-full sm:order-none sm:col-span-1">
                 <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-baseline mb-2">
                   <h3 className="font-fraunces text-[22px] sm:text-2xl tracking-[-0.36px] leading-tight">
-                    {post.title}
+                    {/* The title link covers the whole row; the category link sits above it. */}
+                    <Link href={`/writing/${post.slug}`} className="cursor-none after:absolute after:inset-0">
+                      {post.title}
+                    </Link>
                   </h3>
                   {post.category && (
-                    <span className="font-mono uppercase text-accent text-[9px] tracking-[1.1px] whitespace-nowrap border border-edge px-1.5 py-0.5">
-                      {post.category}
-                    </span>
+                    <Link
+                      href={`/writing/category/${post.category.slug}`}
+                      className="relative z-[1] font-mono uppercase text-accent text-[9px] tracking-[1.1px] whitespace-nowrap border border-edge px-1.5 py-0.5 cursor-none transition-colors hover:border-accent"
+                    >
+                      {post.category.name}
+                    </Link>
                   )}
                 </div>
-                {post.excerpt && (
-                  <p className="text-sm leading-relaxed text-muted max-w-[520px]">
-                    {post.excerpt}
-                  </p>
-                )}
+                {post.excerpt && <p className="text-sm leading-relaxed text-muted max-w-[520px]">{post.excerpt}</p>}
               </div>
               <div className="font-mono text-muted text-[10px] tracking-[0.6px] text-right sm:pt-2">
                 {post.readDisplay} →
               </div>
-            </Link>
+            </article>
           ))}
         </section>
       ))}

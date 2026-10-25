@@ -88,7 +88,15 @@ export default async function WritingPostPage({
         {/* Meta row */}
         <div className="flex flex-wrap gap-x-3 sm:gap-x-5 gap-y-2 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-6">
           {[
-            post.category && <span key="category">{post.category}</span>,
+            post.categoryRef && (
+              <Link
+                key="category"
+                href={`/writing/category/${post.categoryRef.slug}`}
+                className="cursor-none transition-colors hover:text-accent"
+              >
+                {post.categoryRef.name}
+              </Link>
+            ),
             dateDisplay && (
               <time key="date" dateTime={published}>
                 {dateDisplay}
@@ -157,8 +165,30 @@ export default async function WritingPostPage({
 
       {/* Footer meta */}
       <div className="mt-16 pt-6 border-t border-edge flex flex-wrap gap-4 justify-between items-center font-mono text-[11px] tracking-[0.7px] text-muted">
-        <span>{post.category ? `Filed under: ${post.category}` : " "}</span>
+        <span>
+          {post.categoryRef ? (
+            <>
+              Filed under:{" "}
+              <Link href={`/writing/category/${post.categoryRef.slug}`} className="cursor-none transition-colors hover:text-accent">
+                {post.categoryRef.name}
+              </Link>
+            </>
+          ) : (
+            " "
+          )}
+        </span>
         <span>/ END /</span>
+        {post.tagRefs.length > 0 && (
+          <ul aria-label="Tags" className="basis-full flex flex-wrap gap-x-4 gap-y-1">
+            {post.tagRefs.map((tag) => (
+              <li key={tag.slug}>
+                <Link href={`/writing/tag/${tag.slug}`} className="cursor-none transition-colors hover:text-accent">
+                  #{tag.name}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
 
       {/* Read next */}

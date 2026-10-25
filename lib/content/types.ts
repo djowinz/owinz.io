@@ -1,6 +1,19 @@
 // Shapes the site renders. Both content sources (the database in production,
 // Markdown files for the one-time import and tests) produce these.
 
+/** A category or tag as the site links to it. */
+export interface TermRef {
+  name: string;
+  slug: string;
+}
+
+/** A category or tag with how many live posts use it. */
+export interface TermSummary extends TermRef {
+  count: number;
+  /** Categories only: intro and meta description of its page. */
+  description: string;
+}
+
 export interface WritingPost {
   slug: string;
   title: string;
@@ -14,6 +27,9 @@ export interface WritingPost {
   updated?: string;
   category?: string;
   tags: string[];
+  /** The category and tags with their slugs, for /writing/category|tag/<slug>/. */
+  categoryRef?: TermRef;
+  tagRefs: TermRef[];
   /** Byline shown to readers: the post's byline, or the site owner. */
   author: string;
   /** Rendered HTML. */

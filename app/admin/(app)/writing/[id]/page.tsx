@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
 import { PostEditor } from "@/components/admin/editor/PostEditor";
 import { getDb } from "@/lib/db";
-import { getPostForEdit, PostError, toInput } from "@/lib/cms/posts";
+import { getPostForEdit, PostError } from "@/lib/cms/posts";
+import { can } from "@/lib/cms/permissions";
+import { listTerms } from "@/lib/content/terms";
 import { renderDraftPreview } from "@/lib/cms/preview";
 import { requireCmsUser } from "@/lib/cms/session";
 import { SITE } from "@/lib/site";
@@ -15,12 +17,17 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
     if (err instanceof PostError) notFound();
     throw err;
   });
-  const { post, photos, permissions, unpublishedChanges } = data;
+  const { post, input, photos, permissions, unpublishedChanges } = data;
+  const [categories, tags] = await Promise.all([
+    listTerms(getDb(), "writing", "category"),
+    listTerms(getDb(), "writing", "tag"),
+  ]);
+  const option = (t: { id: string; name: string; slug: string }) => ({ id: t.id, name: t.name, slug: t.slug });
 
   return (
     <PostEditor
       id={post.id}
-      initial={toInput(post)}
+      initial={input}
       initialPreview={await renderDraftPreview(getDb(), post.id, post.body)}
       updatedAt={post.updatedAt.toISOString()}
       state={post.state}
@@ -36,6 +43,9 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
       }))}
       permissions={permissions}
       defaultByline={SITE.name}
+      categories={categories.map(option)}
+      tags={tags.map(option).sort((a, b) => a.name.localeCompare(b.name))}
+      canManageTaxonomy={can(user, "manageTaxonomy")}
     />
   );
 }

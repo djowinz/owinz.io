@@ -23,7 +23,7 @@ beforeAll(async () => {
 });
 afterAll(() => close());
 beforeEach(async () => {
-  await db.execute(sql`truncate users, invites, posts, projects, talks, revisions cascade`);
+  await db.execute(sql`truncate users, invites, posts, projects, talks, revisions, terms cascade`);
 });
 
 const editor: Actor = { id: "u-editor", role: "editor" };

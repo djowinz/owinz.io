@@ -8,8 +8,10 @@ export interface PostInput {
   title: string;
   slug: string;
   excerpt: string;
-  category: string | null;
-  tags: string[];
+  /** A writing category's id (lib/cms/taxonomy.ts). */
+  categoryId: string | null;
+  /** Writing tag ids, in display order. */
+  tagIds: string[];
   /** "YYYY-MM-DD" */
   date: string;
   updated: string | null;
@@ -28,6 +30,8 @@ export interface CheckResult {
 }
 
 export const SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+/** Post URLs that would collide with /writing/category/… and /writing/tag/…. */
+const RESERVED_SLUGS = new Set(["category", "tag"]);
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const PLACEHOLDER = /(example\.(com|org)|localhost|\/(username|your-?name|todo)(\/|$))/i;
 
@@ -56,12 +60,14 @@ export function checkPostDraft(input: PostInput): Issue[] {
   const errors: Issue[] = [];
   if (!SLUG.test(input.slug)) {
     errors.push({ field: "slug", message: "Use lowercase words separated by hyphens, e.g. my-first-post." });
+  } else if (RESERVED_SLUGS.has(input.slug)) {
+    errors.push({ field: "slug", message: `/writing/${input.slug}/ is reserved for the archive filters. Choose another URL.` });
   }
   if (!validDate(input.date)) errors.push({ field: "date", message: "Pick a valid date." });
   if (input.updated && !validDate(input.updated)) errors.push({ field: "updated", message: "Pick a valid date." });
   if (input.title.length > 200) errors.push({ field: "title", message: "Keep the title under 200 characters." });
-  if (input.tags.length > 20 || input.tags.some((t) => t.length > 40)) {
-    errors.push({ field: "tags", message: "Up to 20 tags, each under 40 characters." });
+  if (input.tagIds.length > 20) {
+    errors.push({ field: "tagIds", message: "Up to 20 tags." });
   }
   if (input.body.length > 200_000) errors.push({ field: "body", message: "This post is over 200,000 characters." });
   return errors;
@@ -104,7 +110,7 @@ export function checkPostForPublish(input: PostInput, photos: ReadonlySet<string
   } else if (excerpt.length < 70 || excerpt.length > 170) {
     warnings.push({ field: "excerpt", message: `The excerpt is ${excerpt.length} characters; 70–170 reads best in search results.` });
   }
-  if (!input.category?.trim()) warnings.push({ field: "category", message: "No category: it powers the archive filter." });
+  if (!input.categoryId) warnings.push({ field: "categoryId", message: "No category: it powers the archive filter." });
 
   const prose = input.body.replace(/```[\s\S]*?```/g, "");
   if (/^#\s/m.test(prose)) {

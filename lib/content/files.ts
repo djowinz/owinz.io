@@ -5,6 +5,7 @@ import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
 import { normalizeDate } from "../dates";
+import { slugify } from "../cms/validate";
 import { shippedImageSize } from "../images";
 import {
   buildProject,
@@ -65,8 +66,10 @@ export function writingSource(entry: MarkdownEntry): WritingSource {
     excerpt: data.excerpt || "",
     date: normalizeDate(data.date),
     updated: normalizeDate(data.updated) || null,
-    category: data.category ?? null,
-    tags: stringList(data.tags),
+    category: typeof data.category === "string" && data.category.trim()
+      ? { name: data.category.trim(), slug: slugify(data.category) }
+      : null,
+    tags: stringList(data.tags).map((name) => ({ name, slug: slugify(name) })),
     byline: typeof data.author === "string" ? data.author : null,
     body: content,
   };

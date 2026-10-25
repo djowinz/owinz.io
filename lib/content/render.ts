@@ -11,7 +11,7 @@ import { normalizeDate, parseDate } from "../dates";
 import { rehypeArticleImages, type ImageResolver } from "../rehype-images";
 import { summarize } from "../seo";
 import { SITE } from "../site";
-import type { ProjectPost, RecentPost, RecentProject, Talk, WritingPost } from "./types";
+import type { ProjectPost, RecentPost, RecentProject, Talk, TermRef, WritingPost } from "./types";
 
 export type { ImageResolver } from "../rehype-images";
 
@@ -47,8 +47,8 @@ export interface WritingSource {
   excerpt?: string;
   date: string;
   updated?: string | null;
-  category?: string | null;
-  tags?: string[];
+  category?: TermRef | null;
+  tags?: TermRef[];
   /** Author shown to readers; empty means the site owner. */
   byline?: string | null;
   body: string;
@@ -69,8 +69,10 @@ export async function buildWritingPost(
     description: excerpt || summarize(body),
     date: normalizeDate(source.date),
     updated: normalizeDate(source.updated) || undefined,
-    category: source.category || undefined,
-    tags: source.tags ?? [],
+    category: source.category?.name || undefined,
+    tags: (source.tags ?? []).map((t) => t.name),
+    categoryRef: source.category ?? undefined,
+    tagRefs: source.tags ?? [],
     author: source.byline?.trim() || SITE.name,
     content,
     markdown: body.replace(LOCAL_IMAGE, `$1${SITE.url}/writing/${source.slug}/`),

@@ -17,7 +17,6 @@ import {
   publish,
   restore,
   savePost,
-  toInput,
   unpublish,
 } from "@/lib/cms/posts";
 import { renderDraftPreview } from "@/lib/cms/preview";
@@ -88,8 +87,8 @@ export async function unpublishAction(id: string) {
 
 export async function restoreAction(id: string, revisionId: string) {
   return attempt(async () => {
-    const post = await restore(getDb(), await requireUser(), id, revisionId);
-    return { input: toInput(post), updatedAt: post.updatedAt.toISOString() };
+    const { post, input } = await restore(getDb(), await requireUser(), id, revisionId);
+    return { input, updatedAt: post.updatedAt.toISOString() };
   });
 }
 

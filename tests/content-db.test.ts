@@ -21,7 +21,7 @@ beforeAll(async () => {
 });
 afterAll(() => close());
 beforeEach(async () => {
-  await db.execute(sql`truncate users, posts, projects, talks, assets, revisions cascade`);
+  await db.execute(sql`truncate users, posts, projects, talks, assets, revisions, terms cascade`);
   await db.insert(users).values({ id: "user-1", name: "Ghost Writer", email: "ghost@example.com", role: "writer" });
 });
 
