@@ -30,6 +30,19 @@ The CMS lives at `/admin` (sign-in at `/admin/login`). Sign-in is GitHub-only an
 
 Every admin page and server action checks the session and role itself (`lib/cms/session.ts`); `proxy.ts` only redirects signed-out visitors early. `/admin` and `/api` are `noindex` and disallowed in `robots.txt`.
 
+### Writing in the CMS
+
+`/admin/writing` lists every post with its status; **New post** opens the editor.
+
+- **Editor.** A visual editor (TipTap) that reads and writes Markdown, so the stored format and everything built from it are unchanged. It uses the site's article styles, so what you see is what's published. Switch to **Markdown** to edit the source directly; **Site preview** shows the post through the site's own renderer.
+- **Photos.** Drop or paste them into the text, or upload from the tray. Large photos are shrunk in the browser, then rotated, resized, recompressed, and stripped of metadata on the server. Select a photo to set its alt text, caption, and placement (left, center, right).
+- **Saving.** Drafts autosave 1.5 seconds after you stop typing (⌘S saves immediately), and only when something changed. If someone else saved the post after you opened it, your save stops and asks you to reload instead of overwriting them.
+- **Publishing.** Publish runs the content checks: errors (missing title, a photo that isn't uploaded, a bad placement tag) block it; warnings (excerpt length, missing alt text) ask first. Publishing refreshes the post's cache tag, so the article, archive, home page, RSS, sitemap, and `llms.txt` update within a second, with no rebuild. Editing a live post never changes the page until you publish again.
+- **History.** Restore any of the last 10 published versions or 50 autosaves into the draft. The current draft is saved to history first, so a restore can itself be undone.
+- **URLs.** A new post's URL follows its title (taking the next free one if needed) until it's first published; after that it changes only when edited, with a warning that old links will break.
+
+`tests/editor-roundtrip.test.ts` round-trips every post and project through the editor and checks the site renders them identically.
+
 ### Local setup
 
 Everything runs offline: Postgres in Docker, and photos in `.data/blob/` instead of Vercel Blob.
@@ -178,7 +191,10 @@ The cards and `favicon.ico` are rendered by route handlers in folders named `og.
 
 Pushing to `main` deploys to production at https://owinz.io. Any other branch or pull request gets a preview deployment with its own URL.
 
-- **Build:** Vercel runs `pnpm build` (migrate → `next build` → SEO audit against `next start`), the same pipeline as locally, unless Project Settings → Build & Development overrides the build command. If the content check or the SEO audit finds an error, the deployment fails and the live site stays as it was. Check the deployment's build log for the `✖ error` lines.
+- **Separate data per environment.** Production uses the `neon-owinz-io` database and `owinz-io-blob` store; previews use `neon-owinz-io-preview` and `owinz-io-preview-blob`. Both pairs write the same `OWINZ_IO_*` variable names, scoped to their environment (`vercel storage status`), so nothing a preview does, including deleting posts and their photos, can touch production. Both Blob stores are private; photos are served through the site.
+- **CMS settings per environment:** `BETTER_AUTH_SECRET` (different for production and preview), `OWINZ_IO_FIRST_EDITOR` (the email invited as editor on a fresh database), and a GitHub OAuth app's `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`. Preview callbacks use the `dev` branch URL: `https://owinz-io-git-dev-dyllen-owens-projects.vercel.app/api/auth/callback/github`.
+- **First build on a fresh database:** `pnpm db:seed` imports `content/` and invites `OWINZ_IO_FIRST_EDITOR`, but only when the database has no content and no accounts at all; otherwise it does nothing.
+- **Build:** Vercel runs `pnpm build` (migrate → seed → `next build` → SEO audit against `next start`), the same pipeline as locally, unless Project Settings → Build & Development overrides the build command. If the content check or the SEO audit finds an error, the deployment fails and the live site stays as it was. Check the deployment's build log for the `✖ error` lines.
 - **Output:** with `output: "export"` in `next.config.ts`, Vercel serves the static `out/` directory. It serves `404.html` for unknown URLs and sets each file's `Content-Type` from its extension. No server code runs at request time.
 - **Previews stay out of search.** Vercel sends `X-Robots-Tag: noindex` on preview deployments. Production's `*.vercel.app` alias still serves pages whose canonical URL is `https://owinz.io/…`, so search engines credit the real domain.
 - **Analytics:** `<Analytics />` and `<SpeedInsights />` in `app/layout.tsx` report page views and Core Web Vitals. Turn both on in the Vercel project's **Analytics** and **Speed Insights** tabs; until then their scripts at `/_vercel/*` return 404 and nothing is collected. In `pnpm dev` they log to the browser console instead of sending data.

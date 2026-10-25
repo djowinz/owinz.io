@@ -208,6 +208,8 @@ export const revisions = pgTable(
     snapshot: jsonb("snapshot").$type<Record<string, unknown>>().notNull(),
     /** SHA-256 of the snapshot; an autosave identical to the latest revision is skipped. */
     contentHash: text("content_hash").notNull(),
+    /** Who saved or published it; null for imports and removed users. */
+    createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [

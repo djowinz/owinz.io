@@ -62,6 +62,7 @@ export async function saveRevision(
   owner: RevisionOwner,
   kind: RevisionKind,
   snapshot: Snapshot,
+  userId: string | null = null,
 ): Promise<{ saved: boolean; revision?: RevisionRow }> {
   const contentHash = snapshotHash(snapshot);
   const [latest] = await db
@@ -74,7 +75,7 @@ export async function saveRevision(
 
   const [revision] = await db
     .insert(revisions)
-    .values({ ...owner, kind, snapshot, contentHash })
+    .values({ ...owner, kind, snapshot, contentHash, createdBy: userId })
     .returning();
 
   const keep = db

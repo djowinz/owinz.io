@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import Link from "next/link";
 import { label, PageHeader, SectionTitle, StateBadge } from "@/components/admin/ui";
 import { overview, type CollectionOverview } from "@/lib/cms/dashboard";
 import { requireCmsUser } from "@/lib/cms/session";
@@ -6,7 +7,7 @@ import { getDb } from "@/lib/db";
 
 export const metadata = { title: "Overview" };
 
-function Collection({ title, data }: { title: string; data: CollectionOverview }) {
+function Collection({ title, data, href }: { title: string; data: CollectionOverview; href?: string }) {
   return (
     <section>
       <SectionTitle aside={`${data.live} live · ${data.drafts} draft${data.drafts === 1 ? "" : "s"}`}>
@@ -21,7 +22,13 @@ function Collection({ title, data }: { title: string; data: CollectionOverview }
               key={item.id}
               className="grid grid-cols-[1fr_auto] items-baseline gap-x-4 gap-y-1 py-3.5 border-b border-edge last:border-none"
             >
-              <span className="font-fraunces text-lg tracking-[-0.18px] leading-snug">{item.title}</span>
+              {href ? (
+                <Link href={`${href}${item.id}/`} className="font-fraunces text-lg tracking-[-0.18px] leading-snug transition-colors hover:text-accent">
+                  {item.title || "Untitled"}
+                </Link>
+              ) : (
+                <span className="font-fraunces text-lg tracking-[-0.18px] leading-snug">{item.title}</span>
+              )}
               <span className="flex items-center gap-2">
                 {item.unpublishedChanges && <span className={`${label} text-accent`}>Edited</span>}
                 <StateBadge state={item.state} />
@@ -51,7 +58,7 @@ export default async function OverviewPage() {
         }
       />
       <div className="grid gap-14">
-        <Collection title="Writing" data={data.writing} />
+        <Collection title="Writing" data={data.writing} href="/admin/writing/" />
         <Collection title="Projects" data={data.projects} />
         <Collection title="Talks" data={data.talks} />
       </div>
