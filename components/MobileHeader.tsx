@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { AvailabilityBadge } from "@/components/AvailabilityBadge";
 import { DistortionPortrait } from "@/components/DistortionPortrait";
+import { SocialLinks } from "@/components/SocialLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NAV_ITEMS, isActive } from "@/lib/nav";
 
@@ -37,10 +39,15 @@ export default function MobileHeader() {
         <Link
           href="/"
           onClick={() => setOpenOn(null)}
-          className="font-fraunces text-lg font-medium tracking-wide cursor-none"
+          className="whitespace-nowrap font-fraunces text-lg font-medium tracking-wide cursor-none"
         >
           Dyllen Owens
         </Link>
+        <AvailabilityBadge
+          label="Available"
+          className="ml-auto mr-5"
+          labelClassName="max-[359px]:sr-only"
+        />
         <button
           type="button"
           aria-expanded={open}
@@ -101,7 +108,9 @@ export default function MobileHeader() {
 
           <div className="flex-1" />
 
-          <div className="mt-10 flex items-center justify-between font-mono text-[11px] tracking-[0.2px] text-muted-foreground">
+          <SocialLinks className="mt-10 mb-4" />
+
+          <div className="flex items-center justify-between font-mono text-[11px] tracking-[0.2px] text-muted-foreground">
             <span>MMXXVI</span>
             <ThemeToggle />
           </div>

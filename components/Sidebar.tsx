@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { AvailabilityBadge } from "@/components/AvailabilityBadge";
 import { DistortionPortrait } from "@/components/DistortionPortrait";
+import { SocialLinks } from "@/components/SocialLinks";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { NAV_ITEMS, isActive } from "@/lib/nav";
 
@@ -26,15 +28,18 @@ export default function Sidebar() {
         </div>
 
         {/* Author Name */}
-        <h1 className="text-[22px] font-medium font-fraunces tracking-wide text-foreground mb-2">
+        {/* Not a heading: each page owns its single <h1>. */}
+        <p className="text-[22px] font-medium font-fraunces tracking-wide text-foreground mb-2">
           Dyllen Owens
-        </h1>
+        </p>
 
         {/* Blurb */}
         <p className="text-sm text-muted-foreground leading-relaxed">
           Leader, Developer & Writer.
           <span className="block">Solving problems, sharing the process.</span>
         </p>
+
+        <AvailabilityBadge className="mt-4" />
       </div>
 
       {/* Divider */}
@@ -61,6 +66,9 @@ export default function Sidebar() {
 
       {/* Spacer */}
       <div className="flex-1" />
+
+      {/* Profiles */}
+      <SocialLinks className="mt-8 mb-4" />
 
       {/* Footer */}
       <div className="w-full flex items-center justify-between font-mono text-[11px] tracking-[0.2px] text-muted-foreground">

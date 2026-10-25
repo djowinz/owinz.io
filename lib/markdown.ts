@@ -8,6 +8,8 @@ import remarkRehype from "remark-rehype";
 import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 import { readingTime } from "reading-time-estimator";
+import { summarize } from "./seo";
+import { normalizeDate, parseDate } from "./dates";
 
 const contentDirectory = path.join(process.cwd(), "content");
 const WRITING_DIR = path.join(contentDirectory, "writing");
@@ -30,10 +32,19 @@ export const CONTENT_TYPE = {
 export interface WritingPost {
   slug: string;
   title: string;
+  /** Dek shown on the page; empty when the frontmatter has none. */
   excerpt: string;
+  /** Meta description: the excerpt, or a summary of the opening paragraph. */
+  description: string;
   date: string;
+  /** Optional `updated` frontmatter, for dateModified / sitemap lastmod. */
+  updated?: string;
   category?: string;
+  tags: string[];
+  /** Rendered HTML. */
   content: string;
+  /** Raw markdown body (llms-full.txt). */
+  markdown: string;
 }
 
 export type RecentPost = Pick<WritingPost, "title" | "slug" | "category"> & {
@@ -60,16 +71,22 @@ export interface ProjectPost {
   sourceUrl?: string;
   image?: string;
   content: string;
+  markdown: string;
   launchDate?: string;
+  updated?: string;
 }
 
 export type RecentProject = Pick<ProjectPost, "title" | "slug" | "category"> & {
   date: Date;
 };
 
-function dateValue(d: Date): number {
-  const t = d.getTime();
-  return Number.isNaN(t) ? -Infinity : t;
+/** Sort key for a content date; missing/invalid dates sort last. */
+function dateValue(raw: string | undefined): number {
+  return parseDate(raw)?.getTime() ?? -Infinity;
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v) => typeof v === "string") : [];
 }
 
 async function markdownToHtml(markdown: string): Promise<string> {
@@ -83,6 +100,27 @@ async function markdownToHtml(markdown: string): Promise<string> {
   return result.toString();
 }
 
+async function parseWriting(
+  slug: string,
+  fileContents: string,
+): Promise<WritingPost> {
+  const { data, content } = matter(fileContents);
+  const excerpt = data.excerpt || "";
+
+  return {
+    slug,
+    title: data.title || "Untitled",
+    excerpt,
+    description: excerpt || summarize(content),
+    date: normalizeDate(data.date),
+    updated: normalizeDate(data.updated) || undefined,
+    category: data.category,
+    tags: stringList(data.tags),
+    content: await markdownToHtml(content),
+    markdown: content.trim(),
+  };
+}
+
 export async function getWritingPosts(
   dir: string = WRITING_DIR,
 ): Promise<WritingPost[]> {
@@ -94,27 +132,17 @@ export async function getWritingPosts(
   const posts = await Promise.all(
     fileNames
       .filter((fileName) => fileName.endsWith(".md"))
-      .map(async (fileName) => {
-        const slug = fileName.replace(/\.md$/, "");
-        const fullPath = path.join(dir, fileName);
-        const fileContents = fs.readFileSync(fullPath, "utf8");
-        const { data, content } = matter(fileContents);
-        const htmlContent = await markdownToHtml(content);
-
-        return {
-          slug,
-          title: data.title || "Untitled",
-          excerpt: data.excerpt || "",
-          date: data.date || "",
-          category: data.category,
-          content: htmlContent,
-        };
-      }),
+      .map((fileName) =>
+        parseWriting(
+          fileName.replace(/\.md$/, ""),
+          fs.readFileSync(path.join(dir, fileName), "utf8"),
+        ),
+      ),
   );
 
   // Sort by date descending; undated posts last
   return posts.sort(
-    (a, b) => dateValue(new Date(b.date)) - dateValue(new Date(a.date)),
+    (a, b) => dateValue(b.date) - dateValue(a.date),
   );
 }
 
@@ -128,18 +156,7 @@ export async function getWritingPost(
     return null;
   }
 
-  const fileContents = fs.readFileSync(fullPath, "utf8");
-  const { data, content } = matter(fileContents);
-  const htmlContent = await markdownToHtml(content);
-
-  return {
-    slug,
-    title: data.title || "Untitled",
-    excerpt: data.excerpt || "",
-    date: data.date || "",
-    category: data.category,
-    content: htmlContent,
-  };
+  return parseWriting(slug, fs.readFileSync(fullPath, "utf8"));
 }
 
 async function parseProject(
@@ -148,29 +165,29 @@ async function parseProject(
 ): Promise<ProjectPost> {
   const { data, content } = matter(fileContents);
   const htmlContent = await markdownToHtml(content);
-  const launch = data.launchDate ? new Date(data.launchDate) : null;
+  const launchDate = normalizeDate(data.launchDate) || undefined;
+  const launch = parseDate(launchDate);
 
   return {
     slug,
     title: data.title || "Untitled",
-    description: data.description || "",
+    description: data.description || summarize(content),
     purpose: data.purpose || "",
     challenge: data.challenge || "",
-    technologies: data.technologies || [],
+    technologies: stringList(data.technologies),
     category: data.category,
     role: data.role,
     status: data.status,
     platform: data.platform,
     order: typeof data.order === "number" ? data.order : 0,
-    year:
-      launch && !Number.isNaN(launch.getTime())
-        ? String(launch.getFullYear())
-        : undefined,
+    year: launch ? String(launch.getFullYear()) : undefined,
     liveUrl: data.liveUrl,
     sourceUrl: data.sourceUrl,
     image: data.image,
     content: htmlContent,
-    launchDate: data.launchDate,
+    markdown: content.trim(),
+    launchDate,
+    updated: normalizeDate(data.updated) || undefined,
   };
 }
 
@@ -243,7 +260,7 @@ export async function getTalks(
       return {
         slug: fileName.replace(/\.md$/, ""),
         title: data.title || "Untitled",
-        date: data.date || "",
+        date: normalizeDate(data.date),
         venue: data.venue,
         format: data.format,
         status: data.status,
@@ -253,10 +270,10 @@ export async function getTalks(
     });
 
   const isUpcoming = (t: (typeof talks)[number]) =>
-    t.upcoming ?? dateValue(new Date(t.date)) >= now.getTime();
+    t.upcoming ?? dateValue(t.date) >= now.getTime();
 
   const byDateDesc = (a: Talk, b: Talk) =>
-    dateValue(new Date(b.date)) - dateValue(new Date(a.date));
+    dateValue(b.date) - dateValue(a.date);
 
   const strip = (t: Talk & { upcoming?: boolean }): Talk => {
     const { slug, title, date, venue, format, status, links } = t;
@@ -304,7 +321,7 @@ export async function getRecentContent(
         const timeOutput = readingTime(content);
         return {
           ...baseObject,
-          date: new Date(data.date),
+          date: parseDate(normalizeDate(data.date)) ?? new Date(NaN),
           readTime: timeOutput.minutes,
           wordCount: timeOutput.words,
           readTimeDisplay: timeOutput.text,
@@ -313,12 +330,13 @@ export async function getRecentContent(
 
       return {
         ...baseObject,
-        date: new Date(data.launchDate),
+        date: parseDate(normalizeDate(data.launchDate)) ?? new Date(NaN),
       } as RecentProject;
     }),
   );
 
   // sort newest-first (undated last) & limit
-  collection.sort((a, b) => dateValue(b.date) - dateValue(a.date));
+  const time = (d: Date) => (Number.isNaN(d.getTime()) ? -Infinity : d.getTime());
+  collection.sort((a, b) => time(b.date) - time(a.date));
   return collection.slice(0, limit);
 }

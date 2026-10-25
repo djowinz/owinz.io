@@ -6,6 +6,8 @@ import Sidebar from "@/components/Sidebar";
 import MobileHeader from "@/components/MobileHeader";
 import CursorWrangler from "@/components/CursorWrangler";
 import { SITE } from "@/lib/site";
+import { siteSchema } from "@/lib/schema";
+import { JsonLd } from "@/components/JsonLd";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -32,12 +34,45 @@ const frauncesItalic = Fraunces({
   style: "italic",
 });
 
+// Site-wide defaults. Deliberately no canonical or og:url here: a page that
+// forgets pageMetadata() should fail the post-build SEO audit, not silently
+// canonicalize to the home page.
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: {
     default: SITE.title,
     template: "%s — owinz.io",
   },
   description: SITE.description,
+  openGraph: {
+    type: "website",
+    siteName: SITE.name,
+    locale: SITE.locale,
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: SITE.title }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: SITE.twitter,
+    creator: SITE.twitter,
+    images: ["/og.png"],
+  },
+  applicationName: SITE.title,
+  authors: [{ name: SITE.name, url: SITE.url }],
+  creator: SITE.name,
+  publisher: SITE.name,
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 },
+  },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "16x16 32x32 48x48" },
+      { url: "/png-logo/do-monogram-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: { url: "/png-logo/do-monogram-180.png", sizes: "180x180" },
+  },
+  formatDetection: { email: false, telephone: false, address: false },
 };
 
 export const viewport: Viewport = {
@@ -59,6 +94,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${frauncesItalic.variable} h-full antialiased pointer-fine:cursor-none`}
     >
       <body className="min-h-screen w-full">
+        <JsonLd data={siteSchema()} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

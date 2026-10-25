@@ -4,19 +4,22 @@ import { format } from "date-fns";
 import Link from "next/link";
 import RecentContent from "@/components/RecentContent";
 import { CONTENT_TYPE } from "@/lib/markdown";
+import { JsonLd } from "@/components/JsonLd";
+import { profilePageSchema } from "@/lib/schema";
+import { pageMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/site";
+
+export const metadata = pageMetadata({ description: SITE.description, path: "/", type: "profile" });
 
 export default function Home() {
   return (
     <>
+      <JsonLd data={profilePageSchema()} />
       {/* Masthead */}
       <div className="flex flex-wrap justify-between gap-x-6 gap-y-2 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-12 sm:mb-[72px]">
         <span className="hidden sm:inline">owinz.io</span>
         <span>
           VOL. IV {getSeason()} &apos;{format(new Date(), "yy")}
-        </span>
-        <span className="flex justify-between items-center">
-          <span className="w-1.75 h-1.75 mr-2 rounded-full bg-accent ring-3 ring-accent/15"></span>
-          Available for new work
         </span>
       </div>
 

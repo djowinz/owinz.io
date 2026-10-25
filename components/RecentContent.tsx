@@ -41,9 +41,9 @@ export default async function RecentProjects({
               {post.readTimeDisplay}
             </span>
           </div>
-          <h2 className="font-fraunces text-[19px] tracking-[-0.19px] leading-6">
+          <h3 className="font-fraunces text-[19px] tracking-[-0.19px] leading-6">
             {post.title}
-          </h2>
+          </h3>
         </Link>
       ));
     }
@@ -59,9 +59,9 @@ export default async function RecentProjects({
               0{idx + 1}
             </span>
             <div className="flex flex-col min-w-0">
-              <h2 className="font-fraunces text-[28px] tracking-[-0.19px] leading-7">
+              <h3 className="font-fraunces text-[28px] tracking-[-0.19px] leading-7">
                 {project.title}
-              </h2>
+              </h3>
               <span className="font-mono text-muted tracking-[1px] mt-1.5 text-[10px] uppercase font-medium">
                 {project.category}
               </span>

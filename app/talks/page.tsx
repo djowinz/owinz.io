@@ -1,11 +1,16 @@
 import { getTalks } from "@/lib/markdown";
 import { SITE } from "@/lib/site";
+import { JsonLd } from "@/components/JsonLd";
+import { talkSchemas } from "@/lib/schema";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: "Talks",
   description:
-    "Speaking about small software and the craft of shipping quietly.",
-};
+    "Talks by Dyllen Owens on small software, visualisation, and the craft of shipping quietly — plus how to book a talk.",
+  path: "/talks",
+  image: "/talks/og.png",
+});
 
 const TOPICS = [
   "The craft of small software",
@@ -19,6 +24,9 @@ export default async function Talks() {
 
   return (
     <div className="max-w-[880px] mx-auto">
+      {upcoming.length + past.length > 0 && (
+        <JsonLd data={talkSchemas([...upcoming, ...past])} />
+      )}
       {/* Masthead */}
       <div className="flex justify-between items-baseline font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         <span>Speaking</span>

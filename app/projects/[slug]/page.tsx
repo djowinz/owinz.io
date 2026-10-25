@@ -2,6 +2,9 @@ import { getProject, getProjects } from "@/lib/markdown";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/JsonLd";
+import { breadcrumbSchema, projectSchema } from "@/lib/schema";
+import { isoDate, pageMetadata } from "@/lib/seo";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>;
@@ -16,7 +19,17 @@ export async function generateMetadata({ params }: ProjectPageProps) {
   const { slug } = await params;
   const project = await getProject(slug);
   if (!project) return { title: "Project Not Found" };
-  return { title: project.title, description: project.description };
+  return pageMetadata({
+    title: project.title,
+    description: project.description,
+    path: `/projects/${project.slug}`,
+    image: `/projects/${project.slug}/og.png`,
+    type: "article",
+    publishedTime: isoDate(project.launchDate),
+    modifiedTime: isoDate(project.updated),
+    section: project.category,
+    tags: project.technologies,
+  });
 }
 
 export default async function ProjectPage({ params }: ProjectPageProps) {
@@ -41,7 +54,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
   ) as string[];
 
   return (
-    <div className="max-w-[720px] mx-auto">
+    <article className="max-w-[720px] mx-auto">
+      <JsonLd
+        data={[
+          projectSchema(project),
+          breadcrumbSchema([
+            { name: "Home", path: "/" },
+            { name: "Projects", path: "/projects" },
+            { name: project.title, path: `/projects/${project.slug}` },
+          ]),
+        ]}
+      />
       {/* Back link */}
       <Link
         href="/projects"
@@ -144,14 +167,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       )}
 
       {/* Body — § counters via .prose-sections */}
-      <article
+      <div
         className="prose prose-sections"
         dangerouslySetInnerHTML={{ __html: project.content }}
       />
 
       {/* Next project footer */}
       {next.slug !== project.slug && (
-        <section className="mt-16 border-t border-edge pt-8 flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-end">
+        <aside className="mt-16 border-t border-edge pt-8 flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-end">
           <div>
             <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-2.5">
               Next project →
@@ -172,8 +195,8 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           >
             All projects
           </Link>
-        </section>
+        </aside>
       )}
-    </div>
+    </article>
   );
 }

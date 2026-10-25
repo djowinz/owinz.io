@@ -1,11 +1,17 @@
 import { getProjects, getTalks } from "@/lib/markdown";
 import { SITE } from "@/lib/site";
 import Link from "next/link";
+import { JsonLd } from "@/components/JsonLd";
+import { projectListSchema } from "@/lib/schema";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: "Projects",
-  description: "Selected software projects, built carefully.",
-};
+  description:
+    "Software projects by Dyllen Owens — case studies on what was built, why, and what each one taught.",
+  path: "/projects",
+  image: "/projects/og.png",
+});
 
 export default async function Projects() {
   const projects = await getProjects();
@@ -13,6 +19,7 @@ export default async function Projects() {
 
   return (
     <div className="max-w-[880px] mx-auto">
+      <JsonLd data={projectListSchema(projects)} />
       {/* Breadcrumb */}
       <div className="flex items-center gap-2.5 font-mono font-medium uppercase text-muted text-[11px] tracking-[1.3px] mb-10 sm:mb-12">
         <span>Index</span>

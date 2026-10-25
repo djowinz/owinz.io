@@ -10,6 +10,7 @@ export interface ArchiveEntry {
   category: string;
   year: string;
   dateDisplay: string;
+  dateIso?: string;
   readDisplay: string;
 }
 
@@ -75,9 +76,12 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
               href={`/writing/${post.slug}`}
               className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 sm:grid-cols-[80px_1fr_90px] sm:gap-6 items-start py-5 sm:py-6 border-t border-edge last:border-b cursor-none transition-colors hover:bg-accent/5"
             >
-              <div className="font-mono text-muted text-[11px] tracking-[0.7px] sm:pt-1.5">
+              <time
+                dateTime={post.dateIso}
+                className="font-mono text-muted text-[11px] tracking-[0.7px] sm:pt-1.5"
+              >
                 {post.dateDisplay}
-              </div>
+              </time>
               <div className="order-last col-span-full sm:order-none sm:col-span-1">
                 <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-baseline mb-2">
                   <h3 className="font-fraunces text-[22px] sm:text-2xl tracking-[-0.36px] leading-tight">

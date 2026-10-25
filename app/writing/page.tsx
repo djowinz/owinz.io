@@ -1,20 +1,27 @@
 import { getWritingPosts } from "@/lib/markdown";
 import WritingArchive, { ArchiveEntry } from "@/components/WritingArchive";
 import { format } from "date-fns";
+import { parseDate } from "@/lib/dates";
 import { readingTime } from "reading-time-estimator";
 import Link from "next/link";
+import { JsonLd } from "@/components/JsonLd";
+import { blogSchema } from "@/lib/schema";
+import { isoDate, pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: "Writing",
-  description: "Notes on design, engineering, and the craft of software.",
-};
+  description:
+    "Essays by Dyllen Owens on software engineering, design, and the slow craft of making software that doesn't shout.",
+  path: "/writing",
+  image: "/writing/og.png",
+});
 
 export default async function Writing() {
   const posts = await getWritingPosts();
 
   const entries: ArchiveEntry[] = posts.map((post) => {
-    const date = new Date(post.date);
-    const valid = !Number.isNaN(date.getTime());
+    const date = parseDate(post.date);
+    const valid = date !== undefined;
     return {
       slug: post.slug,
       title: post.title,
@@ -22,6 +29,7 @@ export default async function Writing() {
       category: post.category ?? "",
       year: valid ? format(date, "yyyy") : "Undated",
       dateDisplay: valid ? format(date, "MMM dd") : "—",
+      dateIso: isoDate(post.date),
       readDisplay: `${readingTime(post.content.replace(/<[^>]+>/g, " ")).minutes} min`,
     };
   });
@@ -30,6 +38,7 @@ export default async function Writing() {
 
   return (
     <>
+      <JsonLd data={blogSchema(posts)} />
       {/* Masthead */}
       <div className="flex justify-between items-baseline font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         <span>Archive</span>

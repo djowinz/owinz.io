@@ -1,36 +1,97 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# owinz.io
 
-## Getting Started
-
-First, run the development server:
+Personal site of Dyllen Owens: Next.js 16 (App Router), Tailwind v4, exported as a fully static site (`out/`) for S3.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm dev            # http://localhost:3000
+pnpm build          # content check → next build → SEO audit (fails on errors)
+pnpm test           # vitest
+pnpm content:check  # just the frontmatter validator
+pnpm seo:audit      # just the post-build audit of out/
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Publishing content
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Add a Markdown file; everything else is generated at build time. The file name is the URL slug, so use `lowercase-words-with-hyphens.md`.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Collection | Folder              | URL                 |
+| ---------- | ------------------- | ------------------- |
+| Writing    | `content/writing/`  | `/writing/<slug>/`  |
+| Projects   | `content/projects/` | `/projects/<slug>/` |
+| Talks      | `content/talks/`    | listed on `/talks/` |
 
-## Learn More
+Dates can be written as `"March 15, 2026"` or `2026-03-15`; both mean that calendar day.
 
-To learn more about Next.js, take a look at the following resources:
+### Writing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+```yaml
+---
+title: "The Art of Debugging"        # required · keep under ~70 chars
+date: "March 15, 2026"               # required
+excerpt: "One or two sentences…"     # recommended · 70–170 chars; becomes the meta description
+category: "Engineering"              # recommended · archive filter + article:section
+tags: [debugging, process]           # optional · keywords, article:tag, RSS categories
+updated: "April 2, 2026"             # optional · dateModified + sitemap lastmod after a revision
+---
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Start body sections at `##`; the title is already the page's `<h1>`. Give every image alt text: `![What it shows](/path.png)`.
 
-## Deploy on Vercel
+### Projects
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```yaml
+---
+title: "Chronicle"                   # required
+description: "One or two sentences…" # recommended · 70–170 chars
+launchDate: "March 15, 2026"         # recommended · drives the year shown
+category: "Personal Finance"
+technologies: [React, D3.js]
+role: "Design, engineering"
+status: "Shipped · v1.3"
+platform: "Web"
+order: 1                             # position on /projects
+liveUrl: "https://…"
+sourceUrl: "https://github.com/…"
+image: "/projects/chronicle.png"     # optional figure (put the file in public/)
+updated: "…"                         # optional
+---
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Talks
+
+```yaml
+---
+title: "On small software"           # required
+date: "September 10, 2026"           # required · future dates list as upcoming
+venue: "Local Meetup"
+format: "30 min talk"
+status: "Confirmed"
+links:
+  slides: "https://…"
+  video: "https://…"
+---
+```
+
+## What the build generates
+
+Nothing below needs hand-editing when content changes.
+
+- **Per-page metadata** (`lib/seo.ts`): title, description (the excerpt, or else the first paragraph), canonical URL, Open Graph and Twitter cards, article dates, tags.
+- **Social cards** (`lib/og.tsx`): a 1200×630 PNG for every article (`/writing/<slug>/og.png`), every project, and each section.
+- **Structured data** (`lib/schema.ts`): JSON-LD for `WebSite` and `Person` on every page, plus `BlogPosting`, `Blog`, `CreativeWork`, `Event`, `BreadcrumbList`, `ProfilePage`, and `ContactPage` where they apply.
+- **Crawler files**: `sitemap.xml`, `robots.txt`, `feed.xml` (full-text RSS), `manifest.webmanifest`.
+- **GEO**: [`llms.txt`](https://llmstxt.org), a map of the site for language models, and `llms-full.txt`, every article and case study as Markdown.
+- **Icons**: `favicon.ico` is packed from `public/png-logo/do-monogram-{16,32,48}.png`. The 180 (apple-touch), 192, and 512 (manifest, also used as maskable) PNGs are served as-is. To change the logo, replace those files at the same sizes, keeping an opaque background with the mark inside the center 80%.
+
+The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico`, rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and S3 would then serve them as `binary/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
+
+## Build guardrails
+
+- `scripts/validate-content.mjs` runs before the build. **Errors** (missing title or date, unparseable dates, bad URLs, bad slugs) stop the build. **Warnings** (missing or long excerpts, placeholder links, `#` headings in the body, images without alt text) are printed.
+- `scripts/seo-audit.mjs` runs on `out/` after the build. It fails on a missing or duplicate title, a missing description or canonical, a canonical that doesn't match the page URL, missing Open Graph tags or images, any count of `<h1>` other than one, invalid JSON-LD, images without `alt`, broken internal links, sitemap gaps, or a 404 page that can be indexed.
+
+## Deploying to S3
+
+- Upload `out/` and set the bucket's (or CloudFront's) error document to `404.html`.
+- Check that `.txt`, `.xml`, `.webmanifest`, and `.ico` files get the right `Content-Type`. `aws s3 sync` infers types from file extensions, but older CLI versions may not know `.webmanifest` (`application/manifest+json`).
+- After the first deploy, submit `https://owinz.io/sitemap.xml` in Google Search Console and Bing Webmaster Tools. Bing's index also feeds ChatGPT search and Copilot.

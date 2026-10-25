@@ -1,10 +1,15 @@
 import { SITE } from "@/lib/site";
 import Link from "next/link";
+import { JsonLd } from "@/components/JsonLd";
+import { contactPageSchema } from "@/lib/schema";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata = {
+export const metadata = pageMetadata({
   title: "Contact",
-  description: "How to reach Dyllen Owens.",
-};
+  description: `How to reach Dyllen Owens — by email at ${SITE.email}, or on GitHub, LinkedIn, and X.`,
+  path: "/contact",
+  image: "/contact/og.png",
+});
 
 const CHANNELS: [string, string, string, string][] = [
   ["Email", SITE.email, `mailto:${SITE.email}`, "Best for anything substantive"],
@@ -30,6 +35,7 @@ const NO_REPLIES = [
 export default function Contact() {
   return (
     <div className="max-w-[880px] mx-auto">
+      <JsonLd data={contactPageSchema()} />
       {/* Masthead */}
       <div className="flex justify-between items-baseline font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         <span>Correspondence</span>
