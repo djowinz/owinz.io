@@ -180,6 +180,57 @@ body {
     @apply my-8 border border-edge;
 }
 
+/* Standalone images render as figures; the Markdown title is the caption. */
+.prose figure {
+    @apply my-10;
+}
+
+/* Photos fill the column; smaller images keep their size, centered.
+   Portrait shots are capped so they fit on screen. */
+.prose figure img {
+    @apply my-0 mx-auto w-auto;
+    max-height: min(80vh, 760px);
+}
+
+.prose figcaption {
+    @apply mt-3 text-sm leading-relaxed text-muted;
+}
+
+/* `photo.jpg#left` / `#right`: text wraps around the image from tablet width
+   up; on phones the column is too narrow, so it stacks like any figure. */
+@media (width >= 40rem) {
+    .prose .align-left,
+    .prose .align-right {
+        width: 45%;
+        margin-top: 0.4em;
+        margin-bottom: 1.25rem;
+    }
+
+    .prose .align-left {
+        float: left;
+        margin-right: 1.75rem;
+    }
+
+    .prose .align-right {
+        float: right;
+        margin-left: 1.75rem;
+    }
+
+    .prose figure:is(.align-left, .align-right) img {
+        @apply w-full;
+    }
+
+    /* Sections and centered figures start below a float, not beside it;
+       lists sit beside it without their bullets overlapping it. */
+    .prose :is(h2, h3, hr, figure:not(.align-left, .align-right)) {
+        clear: both;
+    }
+
+    .prose :is(ul, ol) {
+        overflow: hidden;
+    }
+}
+
 .prose table {
     @apply block max-w-full overflow-x-auto mb-6 text-sm;
 }

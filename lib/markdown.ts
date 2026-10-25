@@ -10,6 +10,8 @@ import rehypeStringify from "rehype-stringify";
 import { readingTime } from "reading-time-estimator";
 import { summarize } from "./seo";
 import { normalizeDate, parseDate } from "./dates";
+import { rehypeArticleImages, type ArticleImageOptions } from "./rehype-images";
+import { SITE } from "./site";
 
 const contentDirectory = path.join(process.cwd(), "content");
 const WRITING_DIR = path.join(contentDirectory, "writing");
@@ -43,8 +45,10 @@ export interface WritingPost {
   tags: string[];
   /** Rendered HTML. */
   content: string;
-  /** Raw markdown body (llms-full.txt). */
+  /** Markdown body (llms-full.txt), with local image paths made absolute. */
   markdown: string;
+  /** Local photos the post references, published at /writing/<slug>/<name>. */
+  images: { name: string; file: string }[];
 }
 
 export type RecentPost = Pick<WritingPost, "title" | "slug" | "category"> & {
@@ -89,23 +93,58 @@ function stringList(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v) => typeof v === "string") : [];
 }
 
-async function markdownToHtml(markdown: string): Promise<string> {
+interface MarkdownEntry {
+  slug: string;
+  file: string;
+  /** Set for folder-style entries (<slug>/index.md), which can hold photos. */
+  folder?: string;
+}
+
+/** Entries in a collection: `<slug>.md` files and `<slug>/index.md` folders. */
+function markdownEntries(dir: string): MarkdownEntry[] {
+  if (!fs.existsSync(dir)) return [];
+  return fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isFile() && entry.name.endsWith(".md")) {
+      return [{ slug: entry.name.replace(/\.md$/, ""), file: path.join(dir, entry.name) }];
+    }
+    const folder = path.join(dir, entry.name);
+    const index = path.join(folder, "index.md");
+    if (entry.isDirectory() && fs.existsSync(index)) {
+      return [{ slug: entry.name, file: index, folder }];
+    }
+    return [];
+  });
+}
+
+function markdownEntry(dir: string, slug: string): MarkdownEntry | null {
+  return markdownEntries(dir).find((entry) => entry.slug === slug) ?? null;
+}
+
+async function markdownToHtml(
+  markdown: string,
+  images: ArticleImageOptions = {},
+): Promise<string> {
   const result = await unified()
     .use(remarkParse)
     .use(remarkGfm)
     .use(remarkRehype)
+    .use(rehypeArticleImages, images)
     .use(rehypeHighlight)
     .use(rehypeStringify)
     .process(markdown);
   return result.toString();
 }
 
-async function parseWriting(
-  slug: string,
-  fileContents: string,
-): Promise<WritingPost> {
-  const { data, content } = matter(fileContents);
+// `![alt](photo.jpg)` → `![alt](https://owinz.io/writing/<slug>/photo.jpg)`
+const LOCAL_IMAGE = /(!\[[^\]]*\]\()(?:\.\/)?(?![a-z][a-z\d+.-]*:|\/|#)/gi;
+
+async function parseWriting(entry: MarkdownEntry): Promise<WritingPost> {
+  const { slug, folder } = entry;
+  const { data, content } = matter(fs.readFileSync(entry.file, "utf8"));
   const excerpt = data.excerpt || "";
+  const baseUrl = `/writing/${slug}`;
+  const used = new Set<string>();
+  const html = await markdownToHtml(content, folder ? { dir: folder, baseUrl, used } : {});
 
   return {
     slug,
@@ -116,29 +155,22 @@ async function parseWriting(
     updated: normalizeDate(data.updated) || undefined,
     category: data.category,
     tags: stringList(data.tags),
-    content: await markdownToHtml(content),
-    markdown: content.trim(),
+    content: html,
+    markdown: folder
+      ? content.trim().replace(LOCAL_IMAGE, `$1${SITE.url}${baseUrl}/`)
+      : content.trim(),
+    images: folder
+      ? [...used]
+          .map((name) => ({ name, file: path.join(folder, name) }))
+          .filter(({ file }) => fs.existsSync(file))
+      : [],
   };
 }
 
 export async function getWritingPosts(
   dir: string = WRITING_DIR,
 ): Promise<WritingPost[]> {
-  if (!fs.existsSync(dir)) {
-    return [];
-  }
-
-  const fileNames = fs.readdirSync(dir);
-  const posts = await Promise.all(
-    fileNames
-      .filter((fileName) => fileName.endsWith(".md"))
-      .map((fileName) =>
-        parseWriting(
-          fileName.replace(/\.md$/, ""),
-          fs.readFileSync(path.join(dir, fileName), "utf8"),
-        ),
-      ),
-  );
+  const posts = await Promise.all(markdownEntries(dir).map(parseWriting));
 
   // Sort by date descending; undated posts last
   return posts.sort(
@@ -150,13 +182,8 @@ export async function getWritingPost(
   slug: string,
   dir: string = WRITING_DIR,
 ): Promise<WritingPost | null> {
-  const fullPath = path.join(dir, `${slug}.md`);
-
-  if (!fs.existsSync(fullPath)) {
-    return null;
-  }
-
-  return parseWriting(slug, fs.readFileSync(fullPath, "utf8"));
+  const entry = markdownEntry(dir, slug);
+  return entry ? parseWriting(entry) : null;
 }
 
 async function parseProject(
@@ -302,18 +329,14 @@ export async function getRecentContent(
     return [];
   }
 
-  const fileNames = fs.readdirSync(dir);
   const collection = await Promise.all(
-    fileNames
-      .filter((fileName) => fileName.endsWith(".md"))
-      .map((fileName) => {
-        const fullPath = path.join(dir, fileName);
-      const fileContents = fs.readFileSync(fullPath, "utf8");
+    markdownEntries(dir).map((entry) => {
+      const fileContents = fs.readFileSync(entry.file, "utf8");
       const { data, content } = matter(fileContents);
 
       const baseObject = {
         title: data.title || "Untitled",
-        slug: fileName.replace(/\.md$/, ""),
+        slug: entry.slug,
         category: data.category || "",
       };
 

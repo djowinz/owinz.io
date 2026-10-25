@@ -14,6 +14,12 @@ function escapeXml(value: string): string {
     .replace(/'/g, "&apos;");
 }
 
+// Feed readers resolve nothing against the site, so root-relative links and
+// image sources in post HTML must be absolute.
+function absolutize(html: string): string {
+  return html.replace(/(\s(?:src|href)=")\/(?!\/)/g, `$1${SITE.url}/`);
+}
+
 function rssDate(raw: string | undefined): string {
   return parseDate(raw)?.toUTCString() ?? "";
 }
@@ -38,7 +44,7 @@ export async function GET() {
           .filter(Boolean)
           .map((term) => `      <category>${escapeXml(term as string)}</category>`),
         `      <description>${escapeXml(post.description)}</description>`,
-        `      <content:encoded>${escapeXml(post.content)}</content:encoded>`,
+        `      <content:encoded>${escapeXml(absolutize(post.content))}</content:encoded>`,
         "    </item>",
       ]
         .filter(Boolean)

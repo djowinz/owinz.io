@@ -35,7 +35,46 @@ updated: "April 2, 2026"             # optional · dateModified + sitemap lastmo
 ---
 ```
 
-Start body sections at `##`; the title is already the page's `<h1>`. Give every image alt text: `![What it shows](/path.png)`.
+Start body sections at `##`; the title is already the page's `<h1>`.
+
+#### Photos
+
+A post with photos is a folder instead of a single file. The photos sit beside the text:
+
+```
+content/writing/my-post/
+  index.md          ← the post (same frontmatter as above)
+  harbor.jpg
+  dashboard.png
+```
+
+Reference a photo by its file name. Text in quotes after the file name becomes the caption:
+
+```md
+![Fishing boats in the harbor at dawn](harbor.jpg "Portland harbor, 6am.")
+
+![The dashboard after the redesign](dashboard.png)
+```
+
+- **Alt text** (in the brackets) describes the image for screen readers and search. Write it for every image.
+- **Captions** are optional. An image on its own line becomes a figure, with the caption underneath.
+- **Placement:** images are centered by default. Add `#left` or `#right` to the file name and the text wraps around the image, newspaper-style. Put the image line before the paragraphs that should wrap around it:
+
+  ```md
+  ![Whiteboard from the incident review](whiteboard.jpg#right "The sketch that cracked it.")
+
+  The paragraph that wraps to the left of the photo…
+  ```
+
+  Floated images take 45% of the column. On phones they stack full-width, since the column is too narrow to wrap. Headings and centered images always start below a floated one.
+- **Formats:** JPEG, PNG, WebP, AVIF, GIF, and SVG. iPhone HEIC photos need exporting as JPEG first (or set Settings → Camera → Formats → Most Compatible).
+- **Any size is fine.** At build time, photos are rotated upright, scaled to at most 1600px wide, recompressed (PNGs stay lossless), and stripped of metadata, including the GPS location phones embed. The originals in `content/` aren't modified. GIFs and SVGs ship as-is.
+- Only photos the post references are published, at `/writing/my-post/harbor.jpg`. `og.png` is reserved for the generated social card.
+- To convert an existing post, move `my-post.md` to `my-post/index.md`. The URL doesn't change.
+
+`pnpm content:check` reports a missing file, a typo'd name, a HEIC photo, missing alt text, or a photo in the folder that the post never uses.
+
+`content/writing/art-of-debugging/` is a worked example with sample images.
 
 ### Projects
 
@@ -83,7 +122,7 @@ Nothing below needs hand-editing when content changes.
 - **GEO**: [`llms.txt`](https://llmstxt.org), a map of the site for language models, and `llms-full.txt`, every article and case study as Markdown.
 - **Icons**: `favicon.ico` is packed from `public/png-logo/do-monogram-{16,32,48}.png`. The 180 (apple-touch), 192, and 512 (manifest, also used as maskable) PNGs are served as-is. To change the logo, replace those files at the same sizes, keeping an opaque background with the mark inside the center 80%.
 
-The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico`, rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and S3 would then serve them as `binary/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
+The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico` (article cards and photos share `app/writing/[slug]/[file]`), rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and S3 would then serve them as `binary/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
 
 ## Build guardrails
 

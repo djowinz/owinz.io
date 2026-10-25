@@ -105,7 +105,11 @@ for (const { file, urlPath } of pages) {
   if (h1s !== 1) report("error", where, `expected exactly one <h1>, found ${h1s}`);
 
   for (const img of visible.match(/<img\b[^>]*>/g) ?? []) {
-    if (attr(img, "alt") === undefined) report("error", where, `<img> without alt: ${attr(img, "src")}`);
+    const src = attr(img, "src");
+    if (attr(img, "alt") === undefined) report("error", where, `<img> without alt: ${src}`);
+    if (src?.startsWith("/") && !src.startsWith("//") && !fs.existsSync(outFileFor(src))) {
+      report("error", where, `image was not exported: ${src}`);
+    }
   }
 
   const blocks = [...html.matchAll(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/g)];

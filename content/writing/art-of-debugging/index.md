@@ -9,6 +9,8 @@ There's a particular kind of frustration that comes with staring at code that sh
 
 But over time, I've learned to reframe debugging from a chore into an art form — a practice that, when approached with the right mindset, becomes one of the most satisfying parts of development.
 
+![A laptop glowing on a desk at night beside a mug of coffee](desk-at-night.jpg "Sample image — a wide landscape photo, shown at full column width.")
+
 ## The Shift in Perspective
 
 Early in my career, bugs felt personal. Each one was evidence of my inadequacy, proof that I didn't belong in this field. The breakthrough came when I started viewing bugs not as failures, but as **puzzles waiting to be solved**.
@@ -42,7 +44,11 @@ Good debugging is tool-assisted, not tool-dependent. Here are my essentials:
 - **Git bisect** — When you don't know which commit introduced a bug, let Git find it for you.
 - **Rubber duck debugging** — Explaining the problem out loud often reveals the solution.
 
+![A debugger paused on a breakpoint, with the session variable undefined in the scope panel](debugger-breakpoint.png "Sample image — a PNG screenshot, kept lossless.")
+
 ## A Recent Victory
+
+![A whiteboard sketch of two web servers behind a load balancer, captioned “sticky session lost on deploy?”](whiteboard-sketch.jpg#right "Sample image (#right) — a portrait phone photo, rotated upright and stripped of its metadata at build time.")
 
 Last month, I spent three days hunting a bug that only appeared in production. Users reported intermittent failures, but our monitoring showed nothing unusual.
 
@@ -51,6 +57,8 @@ The breakthrough came when I stopped looking at the code and started looking at 
 The lesson? Sometimes the bug isn't where you're looking. Expand your investigation radius.
 
 ## Embrace the Unknown
+
+![A yellow rubber duck](rubber-duck.png#left "Sample image (#left) — the text wraps around it.")
 
 Debugging teaches humility. No matter how experienced you become, there will always be bugs that humble you, that force you to admit you don't understand something you thought you knew.
 
