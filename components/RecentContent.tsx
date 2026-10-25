@@ -3,7 +3,7 @@ import {
   getRecentContent,
   RecentPost,
   RecentProject,
-} from "@/lib/markdown";
+} from "@/lib/content";
 import { format } from "date-fns";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";

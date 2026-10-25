@@ -47,12 +47,15 @@ export async function shippedImageSize(
   }
 }
 
-/** The bytes that get published for an article photo. */
-export async function processImage(file: string): Promise<Buffer> {
-  const ext = path.extname(file).toLowerCase();
-  if (PASSTHROUGH.has(ext)) return readFile(file);
+/**
+ * The bytes that get published for an article photo. `name` decides the
+ * output format when the input is a buffer (an upload).
+ */
+export async function processImage(input: string | Buffer, name = String(input)): Promise<Buffer> {
+  const ext = path.extname(name).toLowerCase();
+  if (PASSTHROUGH.has(ext)) return typeof input === "string" ? readFile(input) : input;
 
-  const image = sharp(file)
+  const image = sharp(input)
     .autoOrient()
     .resize({ width: MAX_IMAGE_WIDTH, withoutEnlargement: true });
   switch (ext) {
@@ -66,4 +69,14 @@ export async function processImage(file: string): Promise<Buffer> {
     default:
       return image.jpeg({ quality: 82, mozjpeg: true }).toBuffer();
   }
+}
+
+/** Processes a photo for upload and measures the result. */
+export async function prepareImage(
+  input: string | Buffer,
+  name: string,
+): Promise<{ data: Buffer; contentType: string; width?: number; height?: number }> {
+  const data = await processImage(input, name);
+  const meta = await sharp(data).metadata().catch(() => undefined);
+  return { data, contentType: imageContentType(name), width: meta?.width, height: meta?.height };
 }

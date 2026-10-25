@@ -1,4 +1,4 @@
-import { getWritingPost, getWritingPosts } from "@/lib/markdown";
+import { getWritingPost, getWritingPosts } from "@/lib/content";
 import { format } from "date-fns";
 import { parseDate } from "@/lib/dates";
 import { readingTime } from "reading-time-estimator";
@@ -7,6 +7,8 @@ import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
 import { blogPostingSchema, breadcrumbSchema } from "@/lib/schema";
 import { isoDate, pageMetadata } from "@/lib/seo";
+import { SITE } from "@/lib/site";
+import { withPlaceholder } from "@/lib/static-params";
 
 interface WritingPostPageProps {
   params: Promise<{ slug: string }>;
@@ -14,7 +16,7 @@ interface WritingPostPageProps {
 
 export async function generateStaticParams() {
   const posts = await getWritingPosts();
-  return posts.map((post) => ({ slug: post.slug }));
+  return withPlaceholder(posts.map((post) => ({ slug: post.slug })));
 }
 
 export async function generateMetadata({ params }: WritingPostPageProps) {
@@ -121,13 +123,17 @@ export default async function WritingPostPage({
         {/* Byline strip */}
         <div className="flex justify-between items-center pb-6 mb-10 border-b border-edge">
           <div>
-            <Link
-              href="/"
-              rel="author"
-              className="block text-[13px] cursor-none transition-colors hover:text-accent"
-            >
-              Dyllen Owens
-            </Link>
+            {post.author === SITE.name ? (
+              <Link
+                href="/"
+                rel="author"
+                className="block text-[13px] cursor-none transition-colors hover:text-accent"
+              >
+                {post.author}
+              </Link>
+            ) : (
+              <span className="block text-[13px]">{post.author}</span>
+            )}
             {post.category && (
               <div className="font-mono uppercase text-muted text-[10px] tracking-[1.2px]">
                 {post.category}

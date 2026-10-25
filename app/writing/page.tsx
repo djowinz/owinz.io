@@ -1,4 +1,4 @@
-import { getWritingPosts } from "@/lib/markdown";
+import { getWritingPosts } from "@/lib/content";
 import WritingArchive, { ArchiveEntry } from "@/components/WritingArchive";
 import { format } from "date-fns";
 import { parseDate } from "@/lib/dates";

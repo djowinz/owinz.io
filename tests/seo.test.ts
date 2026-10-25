@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import path from "path";
 import { absoluteUrl, isoDate, pageMetadata, pagePath, summarize } from "../lib/seo";
-import { getWritingPost } from "../lib/markdown";
+import { getWritingPost } from "../lib/content/files";
 import { normalizeDate, parseDate } from "../lib/dates";
 
 const FIXTURE_WRITING = path.join(__dirname, "fixtures", "content-seo", "writing");

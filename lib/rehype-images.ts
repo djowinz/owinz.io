@@ -4,19 +4,23 @@
 //   - `photo.jpg#left` / `photo.jpg#right` floats the image so text wraps
 //     around it, newspaper-style
 //   - every image is lazy-loaded
-//   - photos next to a folder-style post get their published URL and their
-//     shipped width/height, so the page doesn't shift as they load
-import path from "path";
+//   - a post's own photos (referenced by bare file name) get their published
+//     URL and width/height from a resolver, so the page doesn't shift as they load
 import type { Element, Root } from "hast";
 import { SKIP, visit } from "unist-util-visit";
-import { shippedImageSize } from "./images";
+
+export interface ResolvedImage {
+  src: string;
+  width?: number;
+  height?: number;
+}
+
+/** Looks up a post's own photo by file name; undefined when it doesn't exist. */
+export type ImageResolver = (name: string) => Promise<ResolvedImage | undefined>;
 
 export interface ArticleImageOptions {
-  /** Folder of a folder-style post; relative image paths resolve here. */
-  dir?: string;
-  /** Public URL prefix for the post's photos, e.g. "/writing/my-post". */
-  baseUrl?: string;
-  /** Collects the file names of the local photos the post references. */
+  resolve?: ImageResolver;
+  /** Collects the file names of the local photos that resolved. */
   used?: Set<string>;
 }
 
@@ -76,17 +80,17 @@ export function rehypeArticleImages(options: ArticleImageOptions = {}) {
         node.properties.className = [`align-${placement}`];
       }
 
-      const { dir, baseUrl, used } = options;
-      if (!dir || !baseUrl || !isLocalImage(src)) return;
+      const { resolve, used } = options;
+      if (!resolve || !isLocalImage(src)) return;
       const name = decodeURIComponent(src.replace(/^\.\//, ""));
-      // Only files directly inside the post folder are published.
+      // A post's photos sit directly beside it; nested paths aren't published.
       if (name.includes("/")) return;
 
-      used?.add(name);
-      node.properties.src = `${baseUrl}/${encodeURIComponent(name)}`;
       sizing.push(
-        shippedImageSize(path.join(dir, name)).then((size) => {
-          if (size) Object.assign(node.properties, size);
+        resolve(name).then((image) => {
+          if (!image) return;
+          used?.add(name);
+          Object.assign(node.properties, image);
         }),
       );
     });

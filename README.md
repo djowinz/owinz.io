@@ -10,6 +10,40 @@ pnpm content:check  # just the frontmatter validator
 pnpm seo:audit      # just the post-build audit of out/
 ```
 
+## CMS (in progress)
+
+Content is moving from the Markdown files in `content/` into a database, so it can be published without a redeploy. Until the import has run, `content/` is still the source to edit.
+
+- **Storage.** Posts, projects, and talks live in Neon Postgres (`lib/db/schema.ts`), with Markdown bodies stored as Markdown. Photos live in Vercel Blob, processed on upload, and are served from `owinz.io/writing/<slug>/<photo>`.
+- **Drafts and live versions.** Editing changes a post's working draft. Publishing snapshots the draft into a version, and the site renders that snapshot, so the live page never changes until someone publishes. Each post or project keeps its last 10 published versions and 50 autosaves (an autosave is stored only when something changed).
+- **Roles** (`lib/cms/permissions.ts`): editors can do everything, including deleting content and managing users. Writers create, edit, publish, unpublish, and restore. Contributors create content and edit their own until it's first published.
+- **Bylines.** A post's byline is the author readers see (default: Dyllen Owens), independent of the CMS account that wrote or published it.
+- **Caching.** Pages are prerendered and cached under per-collection tags (`lib/content`). Publishing refreshes the tag, so only affected pages re-render; everything stays full HTML for search engines and AI crawlers.
+
+### Local setup
+
+Everything runs offline: Postgres in Docker, and photos in `.data/blob/` instead of Vercel Blob.
+
+```bash
+cp .env.example .env.local     # local defaults
+pnpm db:up                     # start Postgres (docker compose, port 54322)
+pnpm db:migrate                # create the tables
+pnpm content:import            # load content/ into the database (photos → .data/blob/)
+pnpm dev                       # http://localhost:3000
+```
+
+```bash
+pnpm build                     # migrate → next build → SEO audit against next start
+pnpm db:reset                  # wipe the local database and re-run migrations
+pnpm db:down                   # stop Postgres (data is kept in a Docker volume)
+pnpm db:generate               # after changing lib/db/schema.ts, write a migration
+pnpm content:import --dry-run  # list what would be imported
+```
+
+Local URLs (`localhost`) use a normal Postgres connection; Neon URLs use Neon's HTTP driver. To work against real services instead, point `.env.local` at a Neon branch and set `OWINZ_IO_BLOB_DRIVER=vercel` plus the Blob token (see `.env.example`). Vercel won't download Sensitive variables, so `vercel env pull` only writes placeholders for these.
+
+Tests run against an in-process Postgres (PGlite) and need neither Docker nor Neon.
+
 ## Publishing content
 
 Add a Markdown file; everything else is generated at build time. The file name is the URL slug, so use `lowercase-words-with-hyphens.md`.
@@ -126,14 +160,14 @@ The cards and `favicon.ico` are rendered by route handlers in folders named `og.
 
 ## Build guardrails
 
-- `scripts/validate-content.mjs` runs before the build. **Errors** (missing title or date, unparseable dates, bad URLs, bad slugs) stop the build. **Warnings** (missing or long excerpts, placeholder links, `#` headings in the body, images without alt text) are printed.
-- `scripts/seo-audit.mjs` runs on `out/` after the build. It fails on a missing or duplicate title, a missing description or canonical, a canonical that doesn't match the page URL, missing Open Graph tags or images, any count of `<h1>` other than one, invalid JSON-LD, images without `alt`, broken internal links, sitemap gaps, or a 404 page that can be indexed.
+- `scripts/validate-content.mjs` checks the Markdown in `content/` (missing titles or dates, bad URLs and slugs, missing photos, alt text). It runs before `pnpm content:import`; in the CMS milestones the same checks move into saving.
+- `scripts/seo-audit.mjs` crawls the running site after `next build` (or any deployment: `pnpm seo:audit https://…`). It starts at the sitemap and follows every internal link. It fails on a missing or duplicate title, a missing description or canonical, a canonical that doesn't match the page URL, missing Open Graph tags, an og:image or photo that doesn't load as an image, any count of `<h1>` other than one, invalid JSON-LD, images without `alt`, broken links, pages missing from the sitemap, crawler files served with the wrong Content-Type, or a 404 page that can be indexed.
 
 ## Deploying on Vercel
 
 Pushing to `main` deploys to production at https://owinz.io. Any other branch or pull request gets a preview deployment with its own URL.
 
-- **Build:** Vercel runs `pnpm build`, the same pipeline as locally, unless Project Settings → Build & Development overrides the build command. If the content check or the SEO audit finds an error, the deployment fails and the live site stays as it was. Check the deployment's build log for the `✖ error` lines.
+- **Build:** Vercel runs `pnpm build` (migrate → `next build` → SEO audit against `next start`), the same pipeline as locally, unless Project Settings → Build & Development overrides the build command. If the content check or the SEO audit finds an error, the deployment fails and the live site stays as it was. Check the deployment's build log for the `✖ error` lines.
 - **Output:** with `output: "export"` in `next.config.ts`, Vercel serves the static `out/` directory. It serves `404.html` for unknown URLs and sets each file's `Content-Type` from its extension. No server code runs at request time.
 - **Previews stay out of search.** Vercel sends `X-Robots-Tag: noindex` on preview deployments. Production's `*.vercel.app` alias still serves pages whose canonical URL is `https://owinz.io/…`, so search engines credit the real domain.
 - **Analytics:** `<Analytics />` and `<SpeedInsights />` in `app/layout.tsx` report page views and Core Web Vitals. Turn both on in the Vercel project's **Analytics** and **Speed Insights** tabs; until then their scripts at `/_vercel/*` return 404 and nothing is collected. In `pnpm dev` they log to the browser console instead of sending data.

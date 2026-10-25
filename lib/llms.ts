@@ -2,7 +2,7 @@
 // models, plus llms-full.txt with every article and case study inline.
 import { format } from "date-fns";
 import { parseDate } from "./dates";
-import { getProjects, getTalks, getWritingPosts } from "./markdown";
+import { getProjects, getTalks, getWritingPosts } from "./content";
 import { absoluteUrl } from "./seo";
 import { SITE } from "./site";
 
@@ -89,7 +89,7 @@ export async function buildLlmsFullTxt(): Promise<string> {
         `# ${post.title}`,
         "",
         `URL: ${absoluteUrl(`/writing/${post.slug}`)}`,
-        `Author: ${SITE.name}`,
+        `Author: ${post.author}`,
         displayDate(post.date) && `Published: ${displayDate(post.date)}`,
         displayDate(post.updated) && `Updated: ${displayDate(post.updated)}`,
         post.category && `Category: ${post.category}`,

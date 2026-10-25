@@ -6,7 +6,7 @@ import {
   getTalks,
   getWritingPost,
   getWritingPosts,
-} from "../lib/markdown";
+} from "../lib/content/files";
 
 const FIXTURE_WRITING = path.join(__dirname, "fixtures", "content", "writing");
 const FIXTURE_PROJECTS = path.join(

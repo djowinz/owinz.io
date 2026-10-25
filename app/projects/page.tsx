@@ -1,4 +1,4 @@
-import { getProjects, getTalks } from "@/lib/markdown";
+import { getProjects, getTalks } from "@/lib/content";
 import { SITE } from "@/lib/site";
 import Link from "next/link";
 import { JsonLd } from "@/components/JsonLd";

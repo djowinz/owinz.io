@@ -1,7 +1,7 @@
 // schema.org JSON-LD builders. Entities reference the site-wide Person and
 // WebSite (rendered once in the root layout) by @id, so each page only
 // describes itself.
-import type { ProjectPost, Talk, WritingPost } from "./markdown";
+import type { ProjectPost, Talk, WritingPost } from "./content/types";
 import { absoluteUrl, isoDate } from "./seo";
 import { SITE } from "./site";
 
@@ -77,7 +77,8 @@ export function blogPostingSchema(post: WritingPost, wordCount: number): Thing {
     image: `${url}og.png`,
     datePublished: published,
     dateModified: isoDate(post.updated) ?? published,
-    author: person,
+    // A post bylined to someone else is still published by the site owner.
+    author: post.author === SITE.name ? person : { "@type": "Person", name: post.author },
     publisher: person,
     isPartOf: { "@id": WEBSITE_ID },
     inLanguage: SITE.language,
