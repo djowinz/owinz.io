@@ -1,4 +1,6 @@
 import type { Metadata, Viewport } from "next";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Geist, Geist_Mono, Fraunces } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -115,6 +117,10 @@ export default function RootLayout({
             </main>
           </div>
         </ThemeProvider>
+        {/* Vercel Web Analytics + Speed Insights; their scripts are served by
+            Vercel at /_vercel/*, so they only report on Vercel deployments. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
