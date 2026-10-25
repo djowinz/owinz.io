@@ -70,7 +70,8 @@ export function writingSource(entry: MarkdownEntry): WritingSource {
       ? { name: data.category.trim(), slug: slugify(data.category) }
       : null,
     tags: stringList(data.tags).map((name) => ({ name, slug: slugify(name) })),
-    byline: typeof data.author === "string" ? data.author : null,
+    // `byline` as `pnpm content:export` writes it; `author` in older files.
+    byline: typeof (data.byline ?? data.author) === "string" ? (data.byline ?? data.author) : null,
     body: content,
   };
 }

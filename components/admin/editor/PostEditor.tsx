@@ -227,6 +227,32 @@ export function PostEditor(props: Props) {
     });
   }
 
+  /** The saved draft, rendered exactly like the live article, in a new tab. */
+  async function openPreview() {
+    // Opened before saving, while the click still counts as a user gesture.
+    const tab = window.open("about:blank", "_blank");
+    if (!(await save())) {
+      tab?.close();
+      return;
+    }
+    const url = `/admin/preview/writing/${id}/`;
+    if (tab) tab.location.href = url;
+    else setMessage(`Your browser blocked the preview tab. Open ${url} instead.`);
+  }
+
+  /** Downloads the saved draft as Markdown with frontmatter. */
+  function exportMarkdown() {
+    startBusy(async () => {
+      if (!(await save())) return;
+      const link = document.createElement("a");
+      link.href = `/api/cms/posts/${id}/markdown/`;
+      link.download = `${input.slug || "post"}.md`;
+      document.body.append(link);
+      link.click();
+      link.remove();
+    });
+  }
+
   function openHistory() {
     setHistoryOpen(true);
     setHistory(null);
@@ -285,6 +311,12 @@ export function PostEditor(props: Props) {
               View live ↗
             </a>
           )}
+          <button type="button" className={buttonQuiet} onClick={() => void openPreview()}>
+            Preview ↗
+          </button>
+          <button type="button" disabled={busy} className={buttonQuiet} onClick={exportMarkdown}>
+            Export .md
+          </button>
           <button type="button" className={buttonQuiet} onClick={openHistory}>
             History
           </button>
