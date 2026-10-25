@@ -1,6 +1,6 @@
 # owinz.io
 
-Personal site of Dyllen Owens: Next.js 16 (App Router), Tailwind v4, exported as a fully static site (`out/`) for S3.
+Personal site of Dyllen Owens: Next.js 16 (App Router), Tailwind v4, exported as a fully static site (`out/`) and hosted on Vercel.
 
 ```bash
 pnpm dev            # http://localhost:3000
@@ -122,15 +122,22 @@ Nothing below needs hand-editing when content changes.
 - **GEO**: [`llms.txt`](https://llmstxt.org), a map of the site for language models, and `llms-full.txt`, every article and case study as Markdown.
 - **Icons**: `favicon.ico` is packed from `public/png-logo/do-monogram-{16,32,48}.png`. The 180 (apple-touch), 192, and 512 (manifest, also used as maskable) PNGs are served as-is. To change the logo, replace those files at the same sizes, keeping an opaque background with the mark inside the center 80%.
 
-The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico` (article cards and photos share `app/writing/[slug]/[file]`), rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and S3 would then serve them as `binary/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
+The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico` (article cards and photos share `app/writing/[slug]/[file]`), rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and static hosts pick the `Content-Type` from the extension, so they would be served as `application/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
 
 ## Build guardrails
 
 - `scripts/validate-content.mjs` runs before the build. **Errors** (missing title or date, unparseable dates, bad URLs, bad slugs) stop the build. **Warnings** (missing or long excerpts, placeholder links, `#` headings in the body, images without alt text) are printed.
 - `scripts/seo-audit.mjs` runs on `out/` after the build. It fails on a missing or duplicate title, a missing description or canonical, a canonical that doesn't match the page URL, missing Open Graph tags or images, any count of `<h1>` other than one, invalid JSON-LD, images without `alt`, broken internal links, sitemap gaps, or a 404 page that can be indexed.
 
-## Deploying to S3
+## Deploying on Vercel
 
-- Upload `out/` and set the bucket's (or CloudFront's) error document to `404.html`.
-- Check that `.txt`, `.xml`, `.webmanifest`, and `.ico` files get the right `Content-Type`. `aws s3 sync` infers types from file extensions, but older CLI versions may not know `.webmanifest` (`application/manifest+json`).
-- After the first deploy, submit `https://owinz.io/sitemap.xml` in Google Search Console and Bing Webmaster Tools. Bing's index also feeds ChatGPT search and Copilot.
+Pushing to `main` deploys to production at https://owinz.io. Any other branch or pull request gets a preview deployment with its own URL.
+
+- **Build:** Vercel runs `pnpm build`, the same pipeline as locally, unless Project Settings → Build & Development overrides the build command. If the content check or the SEO audit finds an error, the deployment fails and the live site stays as it was. Check the deployment's build log for the `✖ error` lines.
+- **Output:** with `output: "export"` in `next.config.ts`, Vercel serves the static `out/` directory. It serves `404.html` for unknown URLs and sets each file's `Content-Type` from its extension. No server code runs at request time.
+- **Previews stay out of search.** Vercel sends `X-Robots-Tag: noindex` on preview deployments. Production's `*.vercel.app` alias still serves pages whose canonical URL is `https://owinz.io/…`, so search engines credit the real domain.
+- **Analytics:** `<Analytics />` and `<SpeedInsights />` in `app/layout.tsx` report page views and Core Web Vitals. Turn both on in the Vercel project's **Analytics** and **Speed Insights** tabs; until then their scripts at `/_vercel/*` return 404 and nothing is collected. In `pnpm dev` they log to the browser console instead of sending data.
+- **Node:** builds were tested on Node 24. Match it in Project Settings → Build & Development → Node.js Version.
+- **Once, after the first production deploy:** submit `https://owinz.io/sitemap.xml` in Google Search Console and Bing Webmaster Tools. Bing's index also feeds ChatGPT search and Copilot.
+
+To check a build before pushing, run `pnpm build`, then `npx serve out` to browse the exported site at http://localhost:3000.
