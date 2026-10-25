@@ -52,6 +52,15 @@ Categories and tags are records in the database (`terms`), not free text, so a t
 
 `tests/editor-roundtrip.test.ts` round-trips every post and project through the editor and checks the site renders them identically.
 
+### Talks in the CMS
+
+`/admin/talks` lists talks under **Upcoming** and **Past**, using the same rule as the site; **New talk** opens a plain form (`lib/cms/talks.ts`).
+
+- **Fields.** Title, URL (the talk's anchor, `/talks/#<slug>`; it follows the title until published, and `category` and `tag` are reserved), date, and optional venue, format, and status. **Show under** is *By date* (upcoming through the talk's own day, past after) or forces Upcoming or Past. Add up to 6 links with a label (Slides, Video, Event page…) and an `https://` URL; reorder them with the arrows.
+- **No drafts once live.** Talks are small, so they have no version history: saving a published talk updates `/talks` straight away, and the editor says so. A live talk saves only while it passes the publish checks, so a half-typed link never reaches the site.
+- **Saving and publishing** work as for posts: autosave after 1.5 seconds (⌘S now), a reload prompt instead of overwriting someone else's newer save, and publish checks where errors (no title, a link without a label, a non-https URL) block and warnings (no venue, a placeholder host like example.com, an override that disagrees with the date) ask first. Contributors draft their own talks; writers publish and unpublish; only editors delete.
+- **On the site,** every change to a live talk refreshes the talks cache tag, so `/talks`, its Event structured data, and `llms.txt` update without a rebuild. Talks also move from Upcoming to Past daily on their own.
+
 ### Local setup
 
 Everything runs offline: Postgres in Docker, and photos in `.data/blob/` instead of Vercel Blob.
