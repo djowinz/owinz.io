@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { eq, sql } from "drizzle-orm";
 import type { Db } from "../lib/db";
-import { assets, posts, projects, REVISION_LIMITS, talks } from "../lib/db/schema";
+import { assets, posts, projects, REVISION_LIMITS, talks, users } from "../lib/db/schema";
 import {
   publishedPost,
   publishedPostAsset,
@@ -21,7 +21,8 @@ beforeAll(async () => {
 });
 afterAll(() => close());
 beforeEach(async () => {
-  await db.execute(sql`truncate posts, projects, talks, assets, revisions cascade`);
+  await db.execute(sql`truncate users, posts, projects, talks, assets, revisions cascade`);
+  await db.insert(users).values({ id: "user-1", name: "Ghost Writer", email: "ghost@example.com", role: "writer" });
 });
 
 const draft = (overrides: Partial<typeof posts.$inferInsert> = {}) => ({

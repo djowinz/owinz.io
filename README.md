@@ -20,6 +20,16 @@ Content is moving from the Markdown files in `content/` into a database, so it c
 - **Bylines.** A post's byline is the author readers see (default: Dyllen Owens), independent of the CMS account that wrote or published it.
 - **Caching.** Pages are prerendered and cached under per-collection tags (`lib/content`). Publishing refreshes the tag, so only affected pages re-render; everything stays full HTML for search engines and AI crawlers.
 
+### Signing in
+
+The CMS lives at `/admin` (sign-in at `/admin/login`). Sign-in is GitHub-only and invite-only: an account is created only for an email an editor has invited, and the invite sets the role. Editors manage people at `/admin/users`. Removing someone deletes their account and sessions; their content stays.
+
+- **First editor:** `pnpm cms:invite you@example.com editor` (run against the right database), then sign in.
+- **Per environment:** set `BETTER_AUTH_SECRET` (`openssl rand -base64 32`; the CMS refuses to run without it) and a GitHub OAuth app's `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET`. GitHub allows one callback URL per app, so create one app each for production (`https://owinz.io/api/auth/callback/github`), previews (the `dev` branch URL, `https://owinz-io-git-dev-…vercel.app/api/auth/callback/github`), and local development (`http://localhost:3000/api/auth/callback/github`).
+- **Locally without GitHub:** with `OWINZ_IO_DEV_LOGIN=1`, `pnpm dev`, and a localhost database, the sign-in page also offers an email link that is printed to the terminal. It is off in production builds, on Vercel, and against any non-local database.
+
+Every admin page and server action checks the session and role itself (`lib/cms/session.ts`); `proxy.ts` only redirects signed-out visitors early. `/admin` and `/api` are `noindex` and disallowed in `robots.txt`.
+
 ### Local setup
 
 Everything runs offline: Postgres in Docker, and photos in `.data/blob/` instead of Vercel Blob.
@@ -29,7 +39,8 @@ cp .env.example .env.local     # local defaults
 pnpm db:up                     # start Postgres (docker compose, port 54322)
 pnpm db:migrate                # create the tables
 pnpm content:import            # load content/ into the database (photos → .data/blob/)
-pnpm dev                       # http://localhost:3000
+pnpm cms:invite you@example.com editor   # first CMS account
+pnpm dev                       # http://localhost:3000, CMS at /admin
 ```
 
 ```bash
