@@ -4,9 +4,9 @@
 //   OWINZ_IO_BLOB_DRIVER=vercel   Vercel Blob (default; previews and production)
 //   OWINZ_IO_BLOB_DRIVER=local    files under .data/blob/, for offline development
 import { randomBytes } from "crypto";
-import { mkdir, readFile, writeFile } from "fs/promises";
+import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import path from "path";
-import { get, put } from "@vercel/blob";
+import { del, get, put } from "@vercel/blob";
 import { imageContentType } from "./images";
 
 export interface StoredBlob {
@@ -17,6 +17,7 @@ export interface StoredBlob {
 interface BlobDriver {
   upload(pathname: string, body: Buffer, contentType: string): Promise<StoredBlob>;
   read(pathname: string): Promise<{ stream: ReadableStream<Uint8Array>; contentType: string } | null>;
+  remove(pathnames: string[]): Promise<void>;
 }
 
 /** "writing/post/photo.jpg" → "writing/post/photo-k3j9x2.jpg", so replacing a photo never collides. */
@@ -29,9 +30,12 @@ function withSuffix(pathname: string): string {
 // The Vercel ↔ Blob integration prefixes its variables with OWINZ_IO_.
 const TOKEN_VAR = "OWINZ_IO_READ_WRITE_TOKEN";
 
-/** Must match the store's access setting in the Vercel dashboard. */
+/**
+ * Must match the store's access setting. Private by default: the site serves
+ * every photo through its own routes, so nothing needs a public Blob URL.
+ */
 const BLOB_ACCESS: "public" | "private" =
-  process.env.OWINZ_IO_BLOB_ACCESS === "private" ? "private" : "public";
+  process.env.OWINZ_IO_BLOB_ACCESS === "public" ? "public" : "private";
 
 function token(): string {
   const value = process.env[TOKEN_VAR];
@@ -54,6 +58,9 @@ const vercelDriver: BlobDriver = {
     const result = await get(pathname, { access: BLOB_ACCESS, token: token() });
     if (!result || result.statusCode !== 200) return null;
     return { stream: result.stream, contentType: result.blob.contentType };
+  },
+  async remove(pathnames) {
+    if (pathnames.length) await del(pathnames, { token: token() });
   },
 };
 
@@ -82,6 +89,9 @@ const localDriver: BlobDriver = {
       return null;
     }
   },
+  async remove(pathnames) {
+    await Promise.all(pathnames.map((p) => rm(localFile(p), { force: true })));
+  },
 };
 
 const driver = (): BlobDriver => (process.env.OWINZ_IO_BLOB_DRIVER === "local" ? localDriver : vercelDriver);
@@ -90,3 +100,12 @@ export const uploadBlob = (pathname: string, body: Buffer, contentType: string) 
   driver().upload(pathname, body, contentType);
 
 export const readBlob = (pathname: string) => driver().read(pathname);
+
+/** Best effort: a leftover file costs storage, never correctness. */
+export async function removeBlobs(pathnames: string[]): Promise<void> {
+  try {
+    await driver().remove(pathnames);
+  } catch (err) {
+    console.warn("Couldn't remove stored photos:", pathnames, err);
+  }
+}

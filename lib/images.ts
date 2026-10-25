@@ -9,15 +9,8 @@ import sharp from "sharp";
 /** Rendered width cap: about 2x the 680px article column, for retina screens. */
 export const MAX_IMAGE_WIDTH = 1600;
 
-export const IMAGE_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".webp": "image/webp",
-  ".avif": "image/avif",
-  ".gif": "image/gif",
-  ".svg": "image/svg+xml",
-};
+export { IMAGE_TYPES } from "./image-types";
+import { IMAGE_TYPES } from "./image-types";
 
 // Shipped byte-for-byte: re-encoding would drop GIF animation or rasterize SVG.
 const PASSTHROUGH = new Set([".gif", ".svg"]);

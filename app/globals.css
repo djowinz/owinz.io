@@ -345,3 +345,26 @@ body {
 .hljs-strong {
     @apply font-bold;
 }
+
+/* CMS rich-text editor (TipTap). The editing surface uses .prose, so it reads
+   like the published article. */
+.ProseMirror {
+    outline: none;
+}
+
+.ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    pointer-events: none;
+    color: var(--muted);
+}
+
+.ProseMirror figure {
+    cursor: pointer;
+}
+
+.ProseMirror figure.ProseMirror-selectednode img {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}

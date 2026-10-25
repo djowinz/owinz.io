@@ -11,7 +11,7 @@ export class NotFoundError extends Error {}
 export async function publishPost(db: Db, postId: string, userId: string | null = null) {
   const [row] = await db.select().from(posts).where(eq(posts.id, postId));
   if (!row) throw new NotFoundError(`No post ${postId}`);
-  const { revision } = await saveRevision(db, { postId }, "published", postSnapshot(row));
+  const { revision } = await saveRevision(db, { postId }, "published", postSnapshot(row), userId);
   const [updated] = await db
     .update(posts)
     .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })
@@ -34,7 +34,7 @@ export async function unpublishPost(db: Db, postId: string, userId: string | nul
 export async function publishProject(db: Db, projectId: string, userId: string | null = null) {
   const [row] = await db.select().from(projects).where(eq(projects.id, projectId));
   if (!row) throw new NotFoundError(`No project ${projectId}`);
-  const { revision } = await saveRevision(db, { projectId }, "published", projectSnapshot(row));
+  const { revision } = await saveRevision(db, { projectId }, "published", projectSnapshot(row), userId);
   const [updated] = await db
     .update(projects)
     .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })

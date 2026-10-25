@@ -12,6 +12,7 @@ export async function AdminRail() {
   const user = await requireCmsUser();
   const items = [
     { href: "/admin/", label: "Overview" },
+    { href: "/admin/writing/", label: "Writing" },
     ...(can(user, "manageUsers") ? [{ href: "/admin/users/", label: "People" }] : []),
   ];
 
