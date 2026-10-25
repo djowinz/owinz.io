@@ -1,11 +1,10 @@
-import { getProject, getProjects } from "@/lib/markdown";
+import { getProject, getProjects } from "@/lib/content";
 import { renderOgCard } from "@/lib/og";
-
-export const dynamic = "force-static";
+import { withPlaceholder } from "@/lib/static-params";
 
 export async function generateStaticParams() {
   const projects = await getProjects();
-  return projects.map((project) => ({ slug: project.slug }));
+  return withPlaceholder(projects.map((project) => ({ slug: project.slug })));
 }
 
 export async function GET(

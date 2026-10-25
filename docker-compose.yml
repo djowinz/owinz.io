@@ -1,0 +1,21 @@
+# Local Postgres for development: `pnpm db:up`, then `pnpm db:migrate`.
+# Port 54322 avoids clashing with a Postgres already running on 5432.
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: owinz
+      POSTGRES_PASSWORD: owinz
+      POSTGRES_DB: owinz
+    ports:
+      - "54322:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U owinz -d owinz"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+volumes:
+  postgres:

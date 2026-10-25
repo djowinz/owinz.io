@@ -1,8 +1,6 @@
 import type { MetadataRoute } from "next";
-import { getProjects, getWritingPosts } from "@/lib/markdown";
+import { getProjects, getWritingPosts } from "@/lib/content";
 import { absoluteUrl, isoDate } from "@/lib/seo";
-
-export const dynamic = "force-static";
 
 // Every page, rebuilt from content on each build; lastmod comes from the
 // `updated` (or publish) date in frontmatter.

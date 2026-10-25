@@ -1,4 +1,4 @@
-import { getTalks } from "@/lib/markdown";
+import { getTalks } from "@/lib/content";
 import { SITE } from "@/lib/site";
 import { JsonLd } from "@/components/JsonLd";
 import { talkSchemas } from "@/lib/schema";

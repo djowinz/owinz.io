@@ -1,9 +1,8 @@
 import { ChevronsRight } from "lucide-react";
-import { getSeason } from "@/lib/dates";
-import { format } from "date-fns";
 import Link from "next/link";
+import { Edition } from "@/components/Edition";
 import RecentContent from "@/components/RecentContent";
-import { CONTENT_TYPE } from "@/lib/markdown";
+import { CONTENT_TYPE } from "@/lib/content";
 import { JsonLd } from "@/components/JsonLd";
 import { profilePageSchema } from "@/lib/schema";
 import { pageMetadata } from "@/lib/seo";
@@ -19,7 +18,7 @@ export default function Home() {
       <div className="flex flex-wrap justify-between gap-x-6 gap-y-2 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-12 sm:mb-[72px]">
         <span className="hidden sm:inline">owinz.io</span>
         <span>
-          VOL. IV {getSeason()} &apos;{format(new Date(), "yy")}
+          <Edition />
         </span>
       </div>
 

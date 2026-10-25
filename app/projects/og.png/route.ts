@@ -1,7 +1,5 @@
-import { getProjects } from "@/lib/markdown";
+import { getProjects } from "@/lib/content";
 import { renderOgCard } from "@/lib/og";
-
-export const dynamic = "force-static";
 
 export async function GET() {
   const projects = await getProjects();

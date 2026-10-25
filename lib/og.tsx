@@ -2,6 +2,7 @@
 // Fonts are read from assets/fonts so builds don't depend on the network.
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { cacheLife } from "next/cache";
 import { ImageResponse } from "next/og";
 import { summarize } from "./seo";
 import { SITE } from "./site";
@@ -46,11 +47,28 @@ interface OgCard {
   title: string;
   /** Italic line under the title. */
   dek?: string;
+  /** Footer name; defaults to the site owner. */
+  byline?: string;
   /** Footer meta, e.g. ["15 March 2026", "3 min read"]. */
   meta?: string[];
 }
 
-export async function renderOgCard({ eyebrow, title, dek, meta = [] }: OgCard) {
+/**
+ * A social card as a PNG response. The rendered bytes are cached by the
+ * card's content, so each card renders once and again only when its text
+ * changes (e.g. after a post is republished with a new title).
+ */
+export async function renderOgCard(card: OgCard): Promise<Response> {
+  return new Response(await ogCardPng(card), { headers: { "Content-Type": "image/png" } });
+}
+
+async function ogCardPng(card: OgCard): Promise<Uint8Array<ArrayBuffer>> {
+  "use cache";
+  cacheLife("max");
+  return new Uint8Array(await (await drawOgCard(card)).arrayBuffer());
+}
+
+async function drawOgCard({ eyebrow, title, dek, byline = SITE.name, meta = [] }: OgCard) {
   const mono = {
     fontFamily: "Geist Mono",
     fontSize: 20,
@@ -118,7 +136,7 @@ export async function renderOgCard({ eyebrow, title, dek, meta = [] }: OgCard) {
           }}
         >
           <div style={{ display: "flex", fontSize: 34, fontWeight: 600, letterSpacing: "-0.01em" }}>
-            {SITE.name}
+            {byline}
           </div>
           <div style={{ display: "flex", gap: 28, ...mono }}>
             {meta.map((item) => (

@@ -1,9 +1,7 @@
 import { parseDate } from "@/lib/dates";
-import { getWritingPosts } from "@/lib/markdown";
+import { getWritingPosts } from "@/lib/content";
 import { absoluteUrl } from "@/lib/seo";
 import { SITE } from "@/lib/site";
-
-export const dynamic = "force-static";
 
 function escapeXml(value: string): string {
   return value
@@ -38,7 +36,7 @@ export async function GET() {
         `      <title>${escapeXml(post.title)}</title>`,
         `      <link>${url}</link>`,
         `      <guid isPermaLink="true">${url}</guid>`,
-        `      <dc:creator>${escapeXml(SITE.name)}</dc:creator>`,
+        `      <dc:creator>${escapeXml(post.author)}</dc:creator>`,
         pubDate && `      <pubDate>${pubDate}</pubDate>`,
         ...[post.category, ...post.tags]
           .filter(Boolean)

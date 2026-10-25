@@ -1,8 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-export const dynamic = "force-static";
-
 const SIZES = [16, 32, 48];
 const LOGO_DIR = path.join(process.cwd(), "public", "png-logo");
 

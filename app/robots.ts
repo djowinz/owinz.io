@@ -1,8 +1,6 @@
 import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/site";
 
-export const dynamic = "force-static";
-
 // Everything is public, including to AI crawlers (GPTBot, ClaudeBot,
 // PerplexityBot, Google-Extended, …) — being citable is the point of GEO.
 export default function robots(): MetadataRoute.Robots {

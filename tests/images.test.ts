@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import path from "path";
 import sharp from "sharp";
-import { getWritingPost, getWritingPosts } from "../lib/markdown";
+import { getWritingPost, getWritingPosts } from "../lib/content/files";
 import { MAX_IMAGE_WIDTH, processImage } from "../lib/images";
 
 const FIXTURE_WRITING = path.join(__dirname, "fixtures", "content-photos", "writing");
@@ -16,7 +16,7 @@ describe("folder-style posts", () => {
 
   it("publishes only the local photos the post references", async () => {
     const post = await getWritingPost("photo-post", FIXTURE_WRITING);
-    expect(post?.images.map((img) => img.name).sort()).toEqual(["rotated.jpg", "small.png", "wide.jpg"]);
+    expect([...(post?.images ?? [])].sort()).toEqual(["rotated.jpg", "small.png", "wide.jpg"]);
   });
 });
 
@@ -40,7 +40,7 @@ describe("article image HTML", () => {
     );
     expect(content).toMatch(/<figure class="align-left"><img src="\/writing\/photo-post\/small\.png" alt="Left swatch"/);
     expect(content).not.toContain("#right");
-    expect(images.filter((img) => img.name === "small.png")).toHaveLength(1);
+    expect(images.filter((name) => name === "small.png")).toHaveLength(1);
   });
 
   it("adds shipped dimensions and lazy loading", async () => {

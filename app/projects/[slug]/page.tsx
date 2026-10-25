@@ -1,10 +1,11 @@
-import { getProject, getProjects } from "@/lib/markdown";
+import { getProject, getProjects } from "@/lib/content";
 import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbSchema, projectSchema } from "@/lib/schema";
 import { isoDate, pageMetadata } from "@/lib/seo";
+import { withPlaceholder } from "@/lib/static-params";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>;
@@ -12,7 +13,7 @@ interface ProjectPageProps {
 
 export async function generateStaticParams() {
   const projects = await getProjects();
-  return projects.map((project) => ({ slug: project.slug }));
+  return withPlaceholder(projects.map((project) => ({ slug: project.slug })));
 }
 
 export async function generateMetadata({ params }: ProjectPageProps) {

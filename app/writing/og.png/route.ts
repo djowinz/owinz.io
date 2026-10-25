@@ -1,7 +1,5 @@
-import { getWritingPosts } from "@/lib/markdown";
+import { getWritingPosts } from "@/lib/content";
 import { renderOgCard } from "@/lib/og";
-
-export const dynamic = "force-static";
 
 export async function GET() {
   const posts = await getWritingPosts();
