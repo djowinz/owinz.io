@@ -40,6 +40,17 @@ Every admin page and server action checks the session and role itself (`lib/cms/
 - **Publishing.** Publish runs the content checks: errors (missing title, a photo that isn't uploaded, a bad placement tag) block it; warnings (excerpt length, missing alt text) ask first. Publishing refreshes the post's cache tag, so the article, archive, home page, RSS, sitemap, and `llms.txt` update within a second, with no rebuild. Editing a live post never changes the page until you publish again.
 - **History.** Restore any of the last 10 published versions or 50 autosaves into the draft. The current draft is saved to history first, so a restore can itself be undone.
 - **URLs.** A new post's URL follows its title (taking the next free one if needed) until it's first published; after that it changes only when edited, with a warning that old links will break.
+- **Preview.** **Preview ↗** saves the draft and opens it at `/admin/preview/writing/<id>/`, rendered by the same component as the live article (`components/ArticleView.tsx`) inside the site's chrome, under a "Draft preview · not published" bar. It's signed-in only, `noindex`, and rendered per request (never cached); draft photos load through the signed-in photo route.
+- **Export.** **Export .md** downloads the saved draft as Markdown with YAML frontmatter (title, date, updated, excerpt, category, tags, byline, and `status`), in the same format as `content/writing/`.
+
+### Exporting and re-importing content
+
+```bash
+pnpm content:export [dir]        # every post, drafts too → <dir>/writing/<slug>/index.md + photos (default .data/export/)
+pnpm content:import [dir]        # load a content folder (default content/) back into the database
+```
+
+The export writes each post's working draft. Frontmatter records `status: draft | published`, and `unpublishedChanges: true` marks a live post whose draft differs from what the site shows; re-importing publishes everything except `status: draft` posts, so such a post goes live with its draft. Photos are read from storage (`lib/blob.ts`) and re-processed on import. `tests/content-export.test.ts` checks the round trip.
 
 ### Categories and tags
 
@@ -190,6 +201,50 @@ Nothing below needs hand-editing when content changes.
 - **Icons**: `favicon.ico` is packed from `public/png-logo/do-monogram-{16,32,48}.png`. The 180 (apple-touch), 192, and 512 (manifest, also used as maskable) PNGs are served as-is. To change the logo, replace those files at the same sizes, keeping an opaque background with the mark inside the center 80%.
 
 The cards and `favicon.ico` are rendered by route handlers in folders named `og.png` and `favicon.ico` (article cards and photos share `app/writing/[slug]/[file]`), rather than by `opengraph-image.tsx`. Static export writes convention-based images without file extensions, and static hosts pick the `Content-Type` from the extension, so they would be served as `application/octet-stream`. Fonts for the images live in `assets/fonts/` (OFL) so builds don't need the network.
+
+## Dynamic routes and real 404s
+
+Pages with a `[slug]` (`/writing/<slug>/`, `/writing/category/<slug>/`, `/writing/tag/<slug>/`) prerender every known slug and return a real HTTP 404 for an unknown one on its very first request. Each follows the pattern in `lib/static-params.ts`; new dynamic routes (such as `/projects/[slug]`) should copy it:
+
+```tsx
+export const ensureStatic = "navigation"; // wait for the full static render of an unlisted URL
+export const instant = false;            // params are read outside <Suspense> (see below)
+
+export async function generateStaticParams() {
+  return withPlaceholder((await getThings()).map((t) => ({ slug: t.slug })));
+}
+
+export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const thing = found(await getThing(slug)); // a "use cache" getter; found() calls notFound()
+  // …
+}
+```
+
+- **Why.** With Cache Components and Partial Prefetching, Next.js answers a URL that `generateStaticParams` didn't list with the route's prerendered fallback shell. The shell starts streaming, which fixes the status at 200 before the page reaches `notFound()`, so the first visit to a bad URL was a "soft 404". `ensureStatic = "navigation"` makes Next.js render the whole page before responding instead, so `notFound()` still sets 404.
+- **Cost.** None at request time. Known pages stay fully static. An unknown URL is rendered once, and its 404 is cached like any page until a publish refreshes the content tag, so a slug that 404'd starts working as soon as something is published there. The build enforces that every data read on these routes is cached (`"use cache"`). An uncached query fails the build instead of slowing the page.
+- **Keep `params` out of `<Suspense>`.** Reading `params` inside a Suspense boundary also returns 404, but the prerendered content then arrives as an out-of-order segment (a hidden `<div>` swapped in by a script), which crawlers that don't run JavaScript can miss. `instant = false` silences the dev-only "encountered URL data" check that awaiting `params` at the top would trigger. These pages are prerendered per slug, so navigating to them is fast anyway.
+- **The 404 page** for these routes is Next.js's minimal error document with `noindex`; the not-found UI renders in the browser.
+
+## End-to-end tests
+
+```bash
+pnpm db:up
+pnpm test:e2e                    # fresh database → migrate → seed content/ → next build → next start → flows
+pnpm test:e2e --reuse-build      # skip next build when .next already has one
+pnpm test:e2e --only=writing     # only flow files whose name contains "writing"
+pnpm test:e2e --screenshots=dir  # also save screenshots (light and dark)
+pnpm test:e2e --headed           # watch it
+```
+
+`e2e/run.mjs` creates its own database (`owinz_e2e_<random>`) on the local Postgres from `OWINZ_IO_DATABASE_URL` (or `E2E_DATABASE_URL`), runs the migrations, seeds `content/`, builds, and starts `next start` on a free port between 4300 and 4399. It signs in by inserting an editor, a writer, and a contributor with sessions and setting Better Auth's signed session cookie. Then it drives Chrome with Playwright through `e2e/flows/*.mjs` in file order. Afterwards it drops the database and deletes the photos the run stored in `.data/blob/`. Flows wait for conditions (`eventually()` in `e2e/lib.mjs`, Playwright's auto-waiting) instead of sleeping.
+
+- `01-access`: signed-out visitors are sent to sign-in, signed-in users land on the overview, and a forged cookie gets nothing.
+- `02-writing`: create a post (autosave, "Saved"), pick a category and add new tags, upload a photo from the tray, publish (the article, category, tag, archive, and sitemap update without a rebuild), edit without changing the live page until **Update live**, restore from history, preview the draft, export Markdown, rename a category and see it live, and unpublish.
+- `03-roles`: contributors draft but can't publish or edit others' posts, and People is editor-only.
+- `04-not-found`: unknown dynamic URLs return 404 on the first request.
+
+To add flows, create `e2e/flows/NN-name.mjs` exporting `flows = [{ name, run(ctx) }]`. `ctx` has `base`, `browser`, `pg` (a client on the test database), `sessions.{editor,writer,contributor}`, `contextFor(session)`, `fixture(name)` (`e2e/fixtures/`), and `state`, which is shared across flows.
 
 ## Build guardrails
 
