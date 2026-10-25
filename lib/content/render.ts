@@ -11,6 +11,7 @@ import { normalizeDate, parseDate } from "../dates";
 import { rehypeArticleImages, type ImageResolver } from "../rehype-images";
 import { summarize } from "../seo";
 import { SITE } from "../site";
+import { isUpcomingTalk } from "./upcoming";
 import type { ProjectPost, RecentPost, RecentProject, Talk, TermRef, WritingPost } from "./types";
 
 export type { ImageResolver } from "../rehype-images";
@@ -136,7 +137,7 @@ export function splitTalks(
   talks: TalkSource[],
   now: Date,
 ): { upcoming: Talk[]; past: Talk[] } {
-  const isUpcoming = (t: TalkSource) => t.upcoming ?? dateValue(t.date) >= now.getTime();
+  const isUpcoming = (t: TalkSource) => isUpcomingTalk(t, now);
   const strip = ({ slug, title, date, venue, format, status, links }: TalkSource): Talk => ({
     slug,
     title,
