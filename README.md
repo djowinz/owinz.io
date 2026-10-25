@@ -41,6 +41,15 @@ Every admin page and server action checks the session and role itself (`lib/cms/
 - **History.** Restore any of the last 10 published versions or 50 autosaves into the draft. The current draft is saved to history first, so a restore can itself be undone.
 - **URLs.** A new post's URL follows its title (taking the next free one if needed) until it's first published; after that it changes only when edited, with a warning that old links will break.
 
+### Categories and tags
+
+Categories and tags are records in the database (`terms`), not free text, so a typo can't create a second "Engineering".
+
+- **In the editor,** pick a category from the list and add tags as chips (Enter or comma); typing a tag that doesn't exist yet creates it, and an existing name (any capitalization) is reused.
+- **Categories & tags** (`/admin/taxonomy`, editors and writers) renames, re-URLs, describes, reorders, merges (tags), and deletes them. Posts and every saved version refer to terms by id, so a rename shows on every live page at once without republishing. Only unused terms can be deleted; merge a tag into another instead.
+- **On the site,** the archive filters by category and tag. Each category with live posts has an indexed page at `/writing/category/<slug>/` (its description is the intro and meta description, and it's in the sitemap); each tag has a browsable `/writing/tag/<slug>/` page that's `noindex`. Articles link their category and tags.
+- Post URLs `category` and `tag` are reserved.
+
 `tests/editor-roundtrip.test.ts` round-trips every post and project through the editor and checks the site renders them identically.
 
 ### Local setup

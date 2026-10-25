@@ -21,12 +21,13 @@ import {
   splitTalks,
   type ImageResolver,
 } from "./render";
+import { resolveRefs, termsById, toRef } from "./terms";
 import type { ProjectPost, Talk, WritingPost } from "./types";
 
-type PostFields = Pick<
-  PostRow,
-  "slug" | "title" | "excerpt" | "category" | "tags" | "date" | "updated" | "byline" | "body"
->;
+/** A published post snapshot (lib/content/revisions.ts postSnapshot). */
+type PostFields = Pick<PostRow, "slug" | "title" | "excerpt" | "categoryId" | "date" | "updated" | "byline" | "body"> & {
+  tagIds?: string[];
+};
 type ProjectFields = Omit<ProjectRow, "id" | "state" | "publishedSlug" | "publishedRevisionId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt">;
 
 /** Photo URL on the site; `v` changes when the photo is replaced, so it can be cached forever. */
@@ -63,11 +64,19 @@ async function livePosts(db: Db, where?: SQL): Promise<{ id: string; post: Writi
     .from(posts)
     .innerJoin(revisions, eq(revisions.id, posts.publishedRevisionId))
     .where(and(eq(posts.state, "published"), where));
-  const byPost = await postAssets(db, rows.map((r) => r.id));
+  const [byPost, byId] = await Promise.all([postAssets(db, rows.map((r) => r.id)), termsById(db, "writing")]);
   return Promise.all(
     rows.map(async ({ id, slug, snapshot }) => {
-      const fields = { ...(snapshot as PostFields), slug: slug! };
-      return { id, post: await buildWritingPost(fields, resolverFor(fields.slug, byPost.get(id))) };
+      const { categoryId, tagIds, ...fields } = snapshot as PostFields;
+      const category = categoryId ? byId.get(categoryId) : undefined;
+      const source = {
+        ...fields,
+        slug: slug!,
+        // Names come from the terms table, so a rename shows on every live post.
+        category: category ? toRef(category) : null,
+        tags: resolveRefs(tagIds, byId),
+      };
+      return { id, post: await buildWritingPost(source, resolverFor(source.slug, byPost.get(id))) };
     }),
   );
 }

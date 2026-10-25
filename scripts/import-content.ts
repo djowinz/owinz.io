@@ -18,7 +18,8 @@ import {
 } from "../lib/content/files";
 import { publishPost, publishProject } from "../lib/content/publishing";
 import { getDb, type Db } from "../lib/db";
-import { assets, posts, projects, talks } from "../lib/db/schema";
+import { assets, posts, postTags, projects, talks } from "../lib/db/schema";
+import { ensureTerm } from "../lib/cms/taxonomy";
 import { prepareImage } from "../lib/images";
 
 const dryRun = process.argv.includes("--dry-run");
@@ -37,12 +38,21 @@ async function importWriting() {
     log(`writing/${source.slug}`, images.length ? `(${images.length} photos)` : "");
     if (dryRun) continue;
 
+    // Frontmatter category and tags become (or reuse) writing terms.
+    const category = source.category
+      ? await ensureTerm(db, { kind: "category", collection: "writing", name: source.category.name })
+      : null;
+    const tagIds: string[] = [];
+    for (const tag of source.tags ?? []) {
+      const term = await ensureTerm(db, { kind: "tag", collection: "writing", name: tag.name });
+      if (!tagIds.includes(term.id)) tagIds.push(term.id);
+    }
+
     const fields = {
       slug: source.slug,
       title: source.title,
       excerpt: source.excerpt ?? "",
-      category: source.category ?? null,
-      tags: source.tags ?? [],
+      categoryId: category?.id ?? null,
       date: source.date,
       updated: source.updated ?? null,
       byline: source.byline ?? null,
@@ -53,6 +63,10 @@ async function importWriting() {
       .values(fields)
       .onConflictDoUpdate({ target: posts.slug, set: fields })
       .returning();
+    await db.delete(postTags).where(eq(postTags.postId, row.id));
+    if (tagIds.length) {
+      await db.insert(postTags).values(tagIds.map((termId, position) => ({ postId: row.id, termId, position })));
+    }
 
     for (const name of images) {
       const photo = await prepareImage(path.join(entry.folder!, name), name);

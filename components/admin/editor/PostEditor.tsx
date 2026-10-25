@@ -20,6 +20,7 @@ import { buttonDanger, buttonPrimary, buttonQuiet, buttonSecondary, input as inp
 import { HistoryDialog, type HistoryEntry } from "./HistoryDialog";
 import { MarkdownField } from "./MarkdownField";
 import { RichEditor, type BodyEditorHandle } from "./RichEditor";
+import { CategorySelect, TagPicker, type TermOption } from "./TermPicker";
 import { PhotoTray } from "./PhotoTray";
 import { uploadPhoto, type EditorPhoto } from "./upload";
 
@@ -35,6 +36,10 @@ interface Props {
   photos: EditorPhoto[];
   permissions: { edit: boolean; publish: boolean; unpublish: boolean; restore: boolean; delete: boolean };
   defaultByline: string;
+  categories: TermOption[];
+  tags: TermOption[];
+  /** Editors and writers can create categories from the editor. */
+  canManageTaxonomy: boolean;
 }
 
 type SaveStatus = "saved" | "saving" | "error" | "conflict";
@@ -58,6 +63,10 @@ export function PostEditor(props: Props) {
   const [edited, setEdited] = useState(props.unpublishedChanges);
   const [preview, setPreview] = useState(props.initialPreview);
   const [photos, setPhotos] = useState(props.photos);
+  const [categories, setCategories] = useState(props.categories);
+  const [tagOptions, setTagOptions] = useState(props.tags);
+  const addOption = (set: typeof setCategories) => (term: TermOption) =>
+    set((list) => (list.some((t) => t.id === term.id) ? list : [...list, term].sort((a, b) => a.name.localeCompare(b.name))));
   const [uploading, setUploading] = useState(0);
   const [checks, setChecks] = useState<CheckResult | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -444,12 +453,15 @@ export function PostEditor(props: Props) {
               <label htmlFor="category" className={fieldLabel}>
                 Category
               </label>
-              <input
+              <CategorySelect
                 id="category"
-                value={input.category ?? ""}
-                onChange={(e) => update({ category: e.target.value })}
-                placeholder="Engineering"
-                className={inputClass}
+                value={input.categoryId}
+                options={categories}
+                canCreate={props.canManageTaxonomy}
+                disabled={!editable}
+                onChange={(categoryId) => update({ categoryId })}
+                onCreated={addOption(setCategories)}
+                onError={setMessage}
               />
             </div>
             <div>
@@ -466,14 +478,16 @@ export function PostEditor(props: Props) {
             </div>
             <div className="sm:col-span-2">
               <label htmlFor="tags" className={fieldLabel}>
-                Tags <span className="normal-case tracking-normal">(comma-separated)</span>
+                Tags <span className="normal-case tracking-normal">(Enter or comma to add)</span>
               </label>
-              <input
+              <TagPicker
                 id="tags"
-                value={input.tags.join(", ")}
-                onChange={(e) => update({ tags: e.target.value.split(",").map((t) => t.trimStart()) })}
-                placeholder="debugging, process"
-                className={inputClass}
+                value={input.tagIds}
+                options={tagOptions}
+                disabled={!editable}
+                onChange={(tagIds) => update({ tagIds })}
+                onCreated={addOption(setTagOptions)}
+                onError={setMessage}
               />
             </div>
           </div>
@@ -534,7 +548,7 @@ export function PostEditor(props: Props) {
             <div className={`${label} mb-6`}>Preview</div>
             <article className="max-w-[680px]">
               <div className={`${label} mb-5 flex gap-4`}>
-                {input.category && <span>{input.category}</span>}
+                {input.categoryId && <span>{categories.find((c) => c.id === input.categoryId)?.name}</span>}
                 <span>{input.date}</span>
               </div>
               <h1 className="font-fraunces font-light text-[40px] sm:text-[48px] tracking-[-0.03em] leading-[1.02] mb-4">

@@ -1,9 +1,20 @@
 // Writing in the CMS: everything the editor does to a post, with the
 // permission check for each. Server actions (app/admin/(app)/writing) wrap
 // these and refresh the site's cache after publishing changes.
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import type { Db } from "../db";
-import { assets, posts, revisions, users, type AssetRow, type PostRow, type RevisionRow } from "../db/schema";
+import {
+  assets,
+  posts,
+  postTags,
+  revisions,
+  terms,
+  users,
+  type AssetRow,
+  type PostRow,
+  type RevisionRow,
+} from "../db/schema";
+import { postsTagIds, postTagIds } from "../content/terms";
 import { publishPost, unpublishPost } from "../content/publishing";
 import {
   getRevision,
@@ -30,13 +41,13 @@ function today(): string {
   return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
 }
 
-export function toInput(row: PostRow): PostInput {
+export function toInput(row: PostRow, tagIds: readonly string[]): PostInput {
   return {
     title: row.title,
     slug: row.slug,
     excerpt: row.excerpt,
-    category: row.category,
-    tags: row.tags,
+    categoryId: row.categoryId,
+    tagIds: [...tagIds],
     date: row.date,
     updated: row.updated,
     byline: row.byline,
@@ -51,8 +62,8 @@ export function cleanInput(input: PostInput): PostInput {
     title: input.title.trim(),
     slug: input.slug.trim(),
     excerpt: input.excerpt.trim(),
-    category: opt(input.category),
-    tags: [...new Set(input.tags.map((t) => t.trim()).filter(Boolean))],
+    categoryId: input.categoryId || null,
+    tagIds: [...new Set(input.tagIds.filter(Boolean))],
     date: input.date,
     updated: opt(input.updated),
     byline: opt(input.byline),
@@ -61,6 +72,40 @@ export function cleanInput(input: PostInput): PostInput {
 }
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+/** The post's draft as editor input (row + its tags). */
+export async function draftInput(db: Db, row: PostRow): Promise<PostInput> {
+  return toInput(row, await postTagIds(db, row.id));
+}
+
+/** Rejects a category or tags that aren't writing terms of the right kind. */
+async function checkTerms(db: Db, input: PostInput): Promise<void> {
+  const ids = [...input.tagIds, ...(input.categoryId ? [input.categoryId] : [])];
+  if (ids.length === 0) return;
+  if (!ids.every((id) => UUID.test(id))) throw new PostError("Choose a category and tags from the list.");
+  const found = await db.select().from(terms).where(inArray(terms.id, ids));
+  const byId = new Map(found.map((t) => [t.id, t]));
+  const category = input.categoryId ? byId.get(input.categoryId) : undefined;
+  if (input.categoryId && (category?.kind !== "category" || category.collection !== "writing")) {
+    throw new PostError("That category no longer exists. Choose another.");
+  }
+  if (input.tagIds.some((id) => byId.get(id)?.kind !== "tag" || byId.get(id)?.collection !== "writing")) {
+    throw new PostError("A tag no longer exists. Remove it and try again.");
+  }
+}
+
+/** Writes the draft's fields and, if they changed, its tags. */
+async function writeDraft(db: Db, id: string, input: PostInput, userId: string, previousTagIds: readonly string[]) {
+  const { tagIds, ...fields } = input;
+  const [post] = await db.update(posts).set({ ...fields, updatedBy: userId }).where(eq(posts.id, id)).returning();
+  if (tagIds.join() !== previousTagIds.join()) {
+    await db.delete(postTags).where(eq(postTags.postId, id));
+    if (tagIds.length) {
+      await db.insert(postTags).values(tagIds.map((termId, position) => ({ postId: id, termId, position })));
+    }
+  }
+  return post;
+}
 
 async function findPost(db: Db, id: string): Promise<PostRow> {
   if (!UUID.test(id)) throw new PostError("This post no longer exists.");
@@ -105,17 +150,20 @@ export interface PostListItem {
 
 export async function listPosts(db: Db, actor: Actor): Promise<PostListItem[]> {
   const rows = await db
-    .select({ row: posts, liveHash: revisions.contentHash, editor: users.name })
+    .select({ row: posts, live: revisions.snapshot, editor: users.name })
     .from(posts)
     .leftJoin(revisions, eq(revisions.id, posts.publishedRevisionId))
     .leftJoin(users, eq(users.id, posts.updatedBy))
     .orderBy(desc(posts.updatedAt));
-  return rows.map(({ row, liveHash, editor }) => ({
+  const tagsByPost = await postsTagIds(db, rows.map((r) => r.row.id));
+  return rows.map(({ row, live, editor }) => ({
     id: row.id,
     title: row.title || "Untitled",
     slug: row.slug,
     state: row.state,
-    unpublishedChanges: row.state === "published" && liveHash !== snapshotHash(postSnapshot(row)),
+    unpublishedChanges:
+      row.state === "published" &&
+      (!live || snapshotHash(live) !== snapshotHash(postSnapshot(row, tagsByPost.get(row.id) ?? []))),
     date: row.date,
     updatedAt: row.updatedAt,
     updatedBy: editor,
@@ -133,6 +181,7 @@ export interface RevisionSummary {
 
 export interface PostForEdit {
   post: PostRow;
+  input: PostInput;
   photos: AssetRow[];
   revisions: RevisionSummary[];
   unpublishedChanges: boolean;
@@ -151,8 +200,10 @@ export async function getPostForEdit(db: Db, actor: Actor, id: string): Promise<
       .orderBy(desc(revisions.seq)),
   ]);
   const live = history.find((h) => h.revision.id === post.publishedRevisionId)?.revision;
+  const input = await draftInput(db, post);
   return {
     post,
+    input,
     photos,
     revisions: history.map(({ revision, by }) => ({
       id: revision.id,
@@ -161,7 +212,8 @@ export async function getPostForEdit(db: Db, actor: Actor, id: string): Promise<
       by,
       live: revision.id === post.publishedRevisionId && post.state === "published",
     })),
-    unpublishedChanges: post.state === "published" && live?.contentHash !== snapshotHash(postSnapshot(post)),
+    unpublishedChanges:
+      post.state === "published" && (!live || snapshotHash(live.snapshot) !== snapshotHash(postSnapshot(post, input.tagIds))),
     permissions: {
       edit: can(actor, "edit", post),
       publish: can(actor, "publish", post),
@@ -204,6 +256,7 @@ export async function savePost(
   const input = cleanInput(raw);
   const [problem] = checkPostDraft(input);
   if (problem) throw new PostError(problem.message);
+  await checkTerms(db, input);
   const free = await uniqueSlug(db, input.slug, id);
   if (free !== input.slug) {
     if (!autoSlug || current.publishedRevisionId) {
@@ -212,15 +265,14 @@ export async function savePost(
     input.slug = free;
   }
 
-  const unchanged = snapshotHash(postSnapshot({ ...current, ...input })) === snapshotHash(postSnapshot(current));
-  if (unchanged) return { post: current, revisionSaved: false };
+  const currentTagIds = await postTagIds(db, id);
+  const next = postSnapshot({ ...current, ...input }, input.tagIds);
+  if (snapshotHash(next) === snapshotHash(postSnapshot(current, currentTagIds))) {
+    return { post: current, revisionSaved: false };
+  }
 
-  const [post] = await db
-    .update(posts)
-    .set({ ...input, updatedBy: actor.id })
-    .where(eq(posts.id, id))
-    .returning();
-  const { saved } = await saveRevision(db, { postId: id }, "autosave", postSnapshot(post), actor.id);
+  const post = await writeDraft(db, id, input, actor.id, currentTagIds);
+  const { saved } = await saveRevision(db, { postId: id }, "autosave", postSnapshot(post, input.tagIds), actor.id);
   return { post, revisionSaved: saved };
 }
 
@@ -231,14 +283,14 @@ export async function photoNames(db: Db, postId: string): Promise<Set<string>> {
 
 export async function checkPost(db: Db, id: string): Promise<CheckResult> {
   const post = await findPost(db, id);
-  return checkPostForPublish(toInput(post), await photoNames(db, id));
+  return checkPostForPublish(await draftInput(db, post), await photoNames(db, id));
 }
 
 /** Publishes the saved draft. Returns the live slugs before and after (both need refreshing). */
 export async function publish(db: Db, actor: Actor, id: string): Promise<{ post: PostRow; previousSlug: string | null }> {
   const current = await findPost(db, id);
   assertCan(actor, "publish", current);
-  const { errors } = checkPostForPublish(toInput(current), await photoNames(db, id));
+  const { errors } = checkPostForPublish(await draftInput(db, current), await photoNames(db, id));
   if (errors.length) throw new PostError(errors.map((e) => e.message).join(" "));
   const post = await publishPost(db, id, actor.id);
   return { post, previousSlug: current.state === "published" ? current.publishedSlug : null };
@@ -254,18 +306,32 @@ export async function unpublish(db: Db, actor: Actor, id: string): Promise<PostR
  * Copies a revision into the working draft. The current draft is autosaved
  * first, so a restore can itself be undone from the history.
  */
-export async function restore(db: Db, actor: Actor, id: string, revisionId: string): Promise<PostRow> {
+export async function restore(
+  db: Db,
+  actor: Actor,
+  id: string,
+  revisionId: string,
+): Promise<{ post: PostRow; input: PostInput }> {
   const current = await findPost(db, id);
   assertCan(actor, "restore", current);
   const revision = await getRevision(db, { postId: id }, revisionId);
   if (!revision) throw new PostError("That version no longer exists.");
-  await saveRevision(db, { postId: id }, "autosave", postSnapshot(current), actor.id);
+  const currentInput = await draftInput(db, current);
+  await saveRevision(db, { postId: id }, "autosave", postSnapshot(current, currentInput.tagIds), actor.id);
+
   const snapshot = revision.snapshot as Partial<PostInput>;
-  const input = cleanInput({ ...toInput(current), ...snapshot, tags: snapshot.tags ?? current.tags });
+  const input = cleanInput({ ...currentInput, ...snapshot, tagIds: snapshot.tagIds ?? currentInput.tagIds });
   input.slug = await uniqueSlug(db, input.slug, id); // the old slug may have been taken since
-  const [post] = await db.update(posts).set({ ...input, updatedBy: actor.id }).where(eq(posts.id, id)).returning();
-  await saveRevision(db, { postId: id }, "autosave", postSnapshot(post), actor.id);
-  return post;
+  // Categories and tags deleted since that version are dropped, not restored.
+  const live = input.categoryId || input.tagIds.length
+    ? new Map((await db.select().from(terms).where(inArray(terms.id, [...input.tagIds, ...(input.categoryId ? [input.categoryId] : [])]))).map((t) => [t.id, t]))
+    : new Map();
+  if (input.categoryId && !live.has(input.categoryId)) input.categoryId = null;
+  input.tagIds = input.tagIds.filter((tagId) => live.has(tagId));
+
+  const post = await writeDraft(db, id, input, actor.id, currentInput.tagIds);
+  await saveRevision(db, { postId: id }, "autosave", postSnapshot(post, input.tagIds), actor.id);
+  return { post, input };
 }
 
 /** Deletes the post, its history, and its photo records; returns the photos' storage paths to remove. */

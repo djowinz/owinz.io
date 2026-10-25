@@ -2,9 +2,11 @@
 // authenticating the session; the UI uses it only to hide buttons.
 //
 //   editor       everything, including deleting content and managing users
-//   writer       create and edit anything, publish, unpublish, restore versions
-//   contributor  create content and edit their own until it's first published;
-//                can't publish, unpublish, restore, or delete
+//   writer       create and edit anything, publish, unpublish, restore versions,
+//                manage categories and tags
+//   contributor  create content (and new tags) and edit their own until it's
+//                first published; can't publish, unpublish, restore, delete, or
+//                change existing categories and tags
 
 export const ROLES = ["editor", "writer", "contributor"] as const;
 export type Role = (typeof ROLES)[number];
@@ -21,6 +23,7 @@ export type Action =
   | "unpublish"
   | "restore"
   | "delete"
+  | "manageTaxonomy"
   | "manageUsers";
 
 /** The parts of a post, project, or talk that permissions depend on. */
@@ -32,8 +35,8 @@ export interface DocumentRef {
 }
 
 const ROLE_ACTIONS: Record<Role, ReadonlySet<Action>> = {
-  editor: new Set(["create", "edit", "publish", "unpublish", "restore", "delete", "manageUsers"]),
-  writer: new Set(["create", "edit", "publish", "unpublish", "restore"]),
+  editor: new Set(["create", "edit", "publish", "unpublish", "restore", "delete", "manageTaxonomy", "manageUsers"]),
+  writer: new Set(["create", "edit", "publish", "unpublish", "restore", "manageTaxonomy"]),
   contributor: new Set(["create", "edit"]),
 };
 

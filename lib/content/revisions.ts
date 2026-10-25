@@ -71,7 +71,9 @@ export async function saveRevision(
     .where(kind === "autosave" ? ownerFilter(owner) : and(ownerFilter(owner), eq(revisions.kind, kind)))
     .orderBy(desc(revisions.seq))
     .limit(1);
-  if (latest?.contentHash === contentHash) return { saved: false, revision: latest };
+  // Hash the stored snapshot rather than trusting its stored hash: a data
+  // migration may have rewritten the snapshot (e.g. names → term ids).
+  if (latest && snapshotHash(latest.snapshot) === contentHash) return { saved: false, revision: latest };
 
   const [revision] = await db
     .insert(revisions)
@@ -119,10 +121,13 @@ export async function getRevision(
   return row;
 }
 
-/** The editable fields of a post, as stored in its revisions. */
-export function postSnapshot(row: PostRow): Snapshot {
-  const { slug, title, excerpt, category, tags, date, updated, byline, body } = row;
-  return { slug, title, excerpt, category, tags, date, updated, byline, body };
+/**
+ * The editable fields of a post, as stored in its revisions. Category and
+ * tags are stored by id, so renaming one updates every version that uses it.
+ */
+export function postSnapshot(row: PostRow, tagIds: readonly string[]): Snapshot {
+  const { slug, title, excerpt, categoryId, date, updated, byline, body } = row;
+  return { slug, title, excerpt, categoryId, tagIds: [...tagIds], date, updated, byline, body };
 }
 
 /** The editable fields of a project, as stored in its revisions. */

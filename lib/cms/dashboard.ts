@@ -4,6 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { posts, projects, revisions, talks } from "../db/schema";
 import { postSnapshot, projectSnapshot, snapshotHash } from "../content/revisions";
+import { postsTagIds } from "../content/terms";
 
 export interface OverviewItem {
   id: string;
@@ -38,36 +39,39 @@ function summarize(items: OverviewItem[]): CollectionOverview {
 export async function overview(db: Db): Promise<Overview> {
   const [postRows, projectRows, talkRows] = await Promise.all([
     db
-      .select({ row: posts, liveHash: revisions.contentHash })
+      .select({ row: posts, live: revisions.snapshot })
       .from(posts)
       .leftJoin(revisions, eq(revisions.id, posts.publishedRevisionId))
       .orderBy(desc(posts.updatedAt)),
     db
-      .select({ row: projects, liveHash: revisions.contentHash })
+      .select({ row: projects, live: revisions.snapshot })
       .from(projects)
       .leftJoin(revisions, eq(revisions.id, projects.publishedRevisionId))
       .orderBy(desc(projects.updatedAt)),
     db.select().from(talks).orderBy(desc(talks.updatedAt)),
   ]);
+  const tagsByPost = await postsTagIds(db, postRows.map((r) => r.row.id));
 
   return {
     writing: summarize(
-      postRows.map(({ row, liveHash }) => ({
+      postRows.map(({ row, live }) => ({
         id: row.id,
         title: row.title,
         slug: row.slug,
         state: row.state,
-        unpublishedChanges: row.state === "published" && liveHash !== snapshotHash(postSnapshot(row)),
+        unpublishedChanges:
+          row.state === "published" &&
+          (!live || snapshotHash(live) !== snapshotHash(postSnapshot(row, tagsByPost.get(row.id) ?? []))),
         updatedAt: row.updatedAt,
       })),
     ),
     projects: summarize(
-      projectRows.map(({ row, liveHash }) => ({
+      projectRows.map(({ row, live }) => ({
         id: row.id,
         title: row.title,
         slug: row.slug,
         state: row.state,
-        unpublishedChanges: row.state === "published" && liveHash !== snapshotHash(projectSnapshot(row)),
+        unpublishedChanges: row.state === "published" && (!live || snapshotHash(live) !== snapshotHash(projectSnapshot(row))),
         updatedAt: row.updatedAt,
       })),
     ),

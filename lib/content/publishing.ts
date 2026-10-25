@@ -5,13 +5,15 @@ import { eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { posts, projects } from "../db/schema";
 import { postSnapshot, projectSnapshot, saveRevision } from "./revisions";
+import { postTagIds } from "./terms";
 
 export class NotFoundError extends Error {}
 
 export async function publishPost(db: Db, postId: string, userId: string | null = null) {
   const [row] = await db.select().from(posts).where(eq(posts.id, postId));
   if (!row) throw new NotFoundError(`No post ${postId}`);
-  const { revision } = await saveRevision(db, { postId }, "published", postSnapshot(row), userId);
+  const snapshot = postSnapshot(row, await postTagIds(db, postId));
+  const { revision } = await saveRevision(db, { postId }, "published", snapshot, userId);
   const [updated] = await db
     .update(posts)
     .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })

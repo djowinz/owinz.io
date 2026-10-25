@@ -19,6 +19,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -67,6 +68,32 @@ const liveCheck = (table: string) =>
     sql.raw(`state = 'draft' or (published_revision_id is not null and published_slug is not null)`),
   );
 
+/** Categories and tags. Writing and projects each have their own. */
+export const termKind = pgEnum("term_kind", ["category", "tag"]);
+export const termCollection = pgEnum("term_collection", ["writing", "projects"]);
+
+export const terms = pgTable(
+  "terms",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: termKind("kind").notNull(),
+    collection: termCollection("collection").notNull(),
+    /** URL slug: /writing/category/<slug>/, /writing/tag/<slug>/ */
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    /** Category pages use it as their intro and meta description. */
+    description: text("description").notNull().default(""),
+    /** Display order for categories (filters, CMS); tags sort by name. */
+    sortOrder: integer("sort_order").notNull().default(0),
+    ...timestamps,
+  },
+  (t) => [
+    uniqueIndex("terms_slug_key").on(t.kind, t.collection, t.slug),
+    uniqueIndex("terms_name_key").on(t.kind, t.collection, sql`lower(${t.name})`),
+    slugCheck("terms", t.slug),
+  ],
+);
+
 export const posts = pgTable(
   "posts",
   {
@@ -74,8 +101,8 @@ export const posts = pgTable(
     slug: text("slug").notNull(),
     title: text("title").notNull(),
     excerpt: text("excerpt").notNull().default(""),
-    category: text("category"),
-    tags: text("tags").array().notNull().default(sql`'{}'::text[]`),
+    /** A writing category (terms.kind = 'category'); tags are in post_tags. */
+    categoryId: uuid("category_id").references((): AnyPgColumn => terms.id, { onDelete: "restrict" }),
     date: date("date", { mode: "string" }).notNull(),
     updated: date("updated", { mode: "string" }),
     /**
@@ -94,6 +121,21 @@ export const posts = pgTable(
     slugCheck("posts", t.slug),
     liveCheck("posts"),
   ],
+);
+
+/** A post's tags, in the order the author gave them. */
+export const postTags = pgTable(
+  "post_tags",
+  {
+    postId: uuid("post_id")
+      .notNull()
+      .references(() => posts.id, { onDelete: "cascade" }),
+    termId: uuid("term_id")
+      .notNull()
+      .references(() => terms.id, { onDelete: "restrict" }),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.postId, t.termId] }), index("post_tags_term_idx").on(t.termId)],
 );
 
 export const projects = pgTable(
@@ -223,4 +265,5 @@ export type PostRow = typeof posts.$inferSelect;
 export type ProjectRow = typeof projects.$inferSelect;
 export type TalkRow = typeof talks.$inferSelect;
 export type AssetRow = typeof assets.$inferSelect;
+export type TermRow = typeof terms.$inferSelect;
 export type RevisionRow = typeof revisions.$inferSelect;
