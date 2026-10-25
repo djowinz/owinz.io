@@ -1,6 +1,4 @@
-import { Suspense } from "react";
 import { JsonLd } from "@/components/JsonLd";
-import { PageFallback } from "@/components/PageFallback";
 import WritingIndex from "@/components/WritingIndex";
 import { getWritingListing, getWritingTaxonomy } from "@/lib/content";
 import { blogSchema, breadcrumbSchema } from "@/lib/schema";
@@ -10,6 +8,9 @@ import { found, withPlaceholder } from "@/lib/static-params";
 
 // An unknown slug gets a real 404 on its first request (lib/static-params.ts).
 export const ensureStatic = "navigation";
+// Prerendered per slug, so navigations here are effectively instant anyway;
+// reading params outside <Suspense> keeps the listing in the HTML, in order.
+export const instant = false;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -35,17 +36,7 @@ export async function generateMetadata({ params }: Props) {
   });
 }
 
-// The URL is read inside <Suspense>, so the route's shared App Shell doesn't
-// depend on it; every URL is still prerendered in full.
-export default function CategoryPage({ params }: Props) {
-  return (
-    <Suspense fallback={<PageFallback />}>
-      <CategoryListing params={params} />
-    </Suspense>
-  );
-}
-
-async function CategoryListing({ params }: Props) {
+export default async function CategoryPage({ params }: Props) {
   const { slug } = await params;
   const { term, posts, categories, tags } = found(await getWritingListing("category", slug));
 

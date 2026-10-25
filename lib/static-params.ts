@@ -3,6 +3,7 @@
 // HTTP 404 on their very first request:
 //
 //   export const ensureStatic = "navigation";       // in page.tsx
+//   export const instant = false;
 //   export async function generateStaticParams() {
 //     return withPlaceholder((await getThings()).map((t) => ({ slug: t.slug })));
 //   }
@@ -20,6 +21,13 @@
 // (still fully prerendered), and the result for an unknown URL is cached like
 // any other page until its tag is refreshed. The cost: every data read on the
 // route must be cached ("use cache"), which Next.js checks at build time.
+//
+// `params` is awaited at the top of the page, not inside <Suspense>: in a
+// Suspense child the prerendered content would arrive as an out-of-order
+// segment (a hidden div swapped in by a script), which crawlers that don't
+// run JavaScript can miss. `instant = false` opts these pages out of the
+// dev-only "encountered URL data" check that pattern would otherwise trip;
+// they're prerendered per slug, so navigating to them is fast anyway.
 //
 // Segment config must be a literal in the page file (Next.js reads it
 // statically), so it can't be exported from here.
@@ -41,8 +49,7 @@ export function withPlaceholder<T extends { slug: string }>(
 }
 
 /**
- * The value, or a 404. Call it in the page body before anything suspends
- * (no <Suspense> above it in the page), so the 404 status can still be sent.
+ * The value, or a 404. Call it in the page body, outside any <Suspense>.
  */
 export function found<T>(value: T | null | undefined): T {
   if (value === null || value === undefined) notFound();

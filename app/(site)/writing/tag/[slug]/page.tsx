@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-import { PageFallback } from "@/components/PageFallback";
 import WritingIndex from "@/components/WritingIndex";
 import { getWritingListing, getWritingTaxonomy } from "@/lib/content";
 import { pageMetadata } from "@/lib/seo";
@@ -7,6 +5,9 @@ import { found, withPlaceholder } from "@/lib/static-params";
 
 // An unknown slug gets a real 404 on its first request (lib/static-params.ts).
 export const ensureStatic = "navigation";
+// Prerendered per slug, so navigations here are effectively instant anyway;
+// reading params outside <Suspense> keeps the listing in the HTML, in order.
+export const instant = false;
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -33,17 +34,7 @@ export async function generateMetadata({ params }: Props) {
   };
 }
 
-// The URL is read inside <Suspense>, so the route's shared App Shell doesn't
-// depend on it; every URL is still prerendered in full.
-export default function TagPage({ params }: Props) {
-  return (
-    <Suspense fallback={<PageFallback />}>
-      <TagListing params={params} />
-    </Suspense>
-  );
-}
-
-async function TagListing({ params }: Props) {
+export default async function TagPage({ params }: Props) {
   const { slug } = await params;
   const { term, posts, categories, tags } = found(await getWritingListing("tag", slug));
   return (
