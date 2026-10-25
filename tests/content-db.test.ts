@@ -159,7 +159,7 @@ describe("post photos", () => {
     await withPhoto('![Boats](harbor.jpg#right "Dawn")');
     const p = (await publishedPost(db, "hello"))!;
     expect(p.content).toMatch(
-      /<figure class="align-right"><img src="\/writing\/hello\/harbor\.jpg\?v=[a-z0-9]+" alt="Boats" loading="lazy" decoding="async" width="1600" height="1067"><figcaption>Dawn<\/figcaption><\/figure>/,
+      /<figure class="align-right"><img src="\/writing\/hello\/harbor\.jpg\?v=[a-z0-9]+" alt="Boats" loading="lazy" decoding="async" width="1600" height="1067" style="aspect-ratio:1600\/1067;width:min\(100%,1600px,calc\(min\(80vh, 760px\) \* 1\.4995\)\);height:auto"><figcaption>Dawn<\/figcaption><\/figure>/,
     );
     expect(p.images).toEqual(["harbor.jpg"]);
     expect(p.markdown).toContain("](https://owinz.io/writing/hello/harbor.jpg#right");

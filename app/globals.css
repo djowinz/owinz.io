@@ -1,6 +1,18 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Geist Mono's fallback (app/layout.tsx): a system monospace font with
+   Geist Mono's own ascent and descent. Every monospace face advances ~0.6em,
+   so no size-adjust is needed and labels don't rewrap when the font loads. */
+@font-face {
+    font-family: "Geist Mono System";
+    src: local("Menlo"), local("Consolas"), local("DejaVu Sans Mono"), local("Courier New");
+    ascent-override: 100.5%;
+    descent-override: 29.5%;
+    line-gap-override: 0%;
+    size-adjust: 100%;
+}
+
 /* next-themes toggles `.dark` on <html>; `dark:` utilities follow it. */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -188,7 +200,13 @@ body {
 /* Photos fill the column; smaller images keep their size, centered.
    Portrait shots are capped so they fit on screen. */
 .prose figure img {
-    @apply my-0 mx-auto w-auto;
+    @apply my-0 mx-auto;
+}
+
+/* Photos with known dimensions get their size inline (lib/rehype-images.ts),
+   so their space is reserved before they load; others are capped here. */
+.prose figure img:not([style]) {
+    @apply w-auto;
     max-height: min(80vh, 760px);
 }
 
