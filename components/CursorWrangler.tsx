@@ -2,7 +2,8 @@
 import { useState, useEffect } from "react";
 
 export default function CursorWrangler() {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  // null until the first mousemove, so the ring never parks at (0, 0).
+  const [mousePosition, setMousePosition] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -16,9 +17,12 @@ export default function CursorWrangler() {
     };
   }, []);
 
+  if (!mousePosition) return null;
+
   return (
+    // Touch screens have no cursor to replace.
     <div
-      className="w-4 h-4 fixed rounded-full ring-accent ring-2 bg-transparent"
+      className="hidden pointer-fine:block w-4 h-4 fixed rounded-full ring-accent ring-2 bg-transparent"
       style={{
         top: `${mousePosition.y - 6}px`,
         left: `${mousePosition.x - 6}px`,

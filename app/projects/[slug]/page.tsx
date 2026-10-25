@@ -45,16 +45,16 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       {/* Back link */}
       <Link
         href="/projects"
-        className="inline-flex gap-2 items-center font-mono uppercase text-muted text-[11px] tracking-[1.3px] mb-14 cursor-none transition-colors hover:text-accent"
+        className="inline-flex gap-2 items-center font-mono uppercase text-muted text-[11px] tracking-[1.3px] mb-10 sm:mb-14 cursor-none transition-colors hover:text-accent"
       >
         <span>←</span>
         <span>Back to projects</span>
       </Link>
 
       {/* Meta row */}
-      <div className="flex gap-6 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
+      <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         {metaParts.map((part, i) => (
-          <span key={part} className="flex gap-6">
+          <span key={part} className="flex gap-4 sm:gap-6">
             {i > 0 && <span>/</span>}
             <span>{part}</span>
           </span>
@@ -62,17 +62,17 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       </div>
 
       {/* Title + dek */}
-      <h1 className="font-fraunces font-light text-[88px] tracking-[-3.08px] leading-[0.95] mb-6">
+      <h1 className="font-fraunces font-light text-[52px] sm:text-[68px] md:text-[88px] tracking-[-0.035em] leading-[0.95] mb-6 break-words">
         {project.title}
       </h1>
       {project.description && (
-        <p className="font-fraunces-italic italic font-light text-2xl tracking-[-0.24px] leading-snug text-muted mb-14 max-w-[580px]">
+        <p className="font-fraunces-italic italic font-light text-xl sm:text-2xl tracking-[-0.24px] leading-snug text-muted mb-10 sm:mb-14 max-w-[580px]">
           {project.description}
         </p>
       )}
 
       {/* Figure panel */}
-      <div className="relative aspect-[16/10] border border-edge mb-12 overflow-hidden bg-gradient-to-br from-(--secondary) to-(--sidebar)">
+      <div className="relative aspect-[16/10] border border-edge mb-10 sm:mb-12 overflow-hidden bg-gradient-to-br from-(--secondary) to-(--sidebar)">
         {project.image ? (
           <Image
             src={project.image}
@@ -81,18 +81,18 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
             className="object-cover"
           />
         ) : (
-          <div className="absolute inset-10 flex items-center justify-center font-fraunces font-light text-[40px] tracking-[-0.8px] text-muted/40">
+          <div className="absolute inset-6 sm:inset-10 flex items-center justify-center font-fraunces font-light text-[28px] sm:text-[40px] tracking-[-0.8px] text-muted/40">
             {project.title}
           </div>
         )}
-        <div className="absolute top-4 right-5 font-mono text-muted text-[10px] tracking-[1px]">
+        <div className="absolute top-3 right-4 sm:top-4 sm:right-5 font-mono text-muted text-[10px] tracking-[1px]">
           FIG. 01 — OVERVIEW
         </div>
       </div>
 
       {/* Buttons */}
       {(project.liveUrl || project.sourceUrl) && (
-        <div className="flex gap-3 mb-16">
+        <div className="flex flex-wrap gap-3 mb-12 sm:mb-16">
           {project.liveUrl && (
             <a
               href={project.liveUrl}
@@ -114,7 +114,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       {/* Factsheet */}
       {(facts.length > 0 || project.technologies.length > 0) && (
-        <div className="grid grid-cols-2 gap-x-12 gap-y-8 border-y border-edge py-8 mb-16">
+        <div className="grid grid-cols-2 gap-x-6 sm:gap-x-12 gap-y-8 border-y border-edge py-8 mb-12 sm:mb-16">
           {facts.map(([key, value]) => (
             <div key={key}>
               <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-2">
@@ -128,7 +128,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-2.5">
                 Stack
               </div>
-              <div className="flex flex-wrap gap-4.5">
+              <div className="flex flex-wrap gap-x-4.5 gap-y-1.5">
                 {project.technologies.map((tech) => (
                   <span
                     key={tech}
@@ -151,14 +151,14 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
 
       {/* Next project footer */}
       {next.slug !== project.slug && (
-        <section className="mt-16 border-t border-edge pt-8 flex justify-between items-end">
+        <section className="mt-16 border-t border-edge pt-8 flex flex-col gap-6 sm:flex-row sm:justify-between sm:items-end">
           <div>
             <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-2.5">
               Next project →
             </div>
             <Link
               href={`/projects/${next.slug}`}
-              className="font-fraunces text-[40px] tracking-[-0.8px] cursor-none transition-colors hover:text-accent"
+              className="font-fraunces text-[32px] sm:text-[40px] tracking-[-0.8px] cursor-none transition-colors hover:text-accent"
             >
               {next.title}{" "}
               <span className="font-mono text-xs text-muted align-super ml-1.5">
@@ -168,7 +168,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
           </div>
           <Link
             href="/projects"
-            className="font-mono uppercase text-muted text-[11px] tracking-[1.1px] border-b border-edge pb-1 cursor-none transition-colors hover:text-accent"
+            className="self-start sm:self-auto font-mono uppercase text-muted text-[11px] tracking-[1.1px] border-b border-edge pb-1 cursor-none transition-colors hover:text-accent"
           >
             All projects
           </Link>

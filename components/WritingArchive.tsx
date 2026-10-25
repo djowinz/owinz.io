@@ -39,7 +39,7 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
   return (
     <>
       {/* Tag filter row */}
-      <div className="flex flex-wrap gap-3 mb-14 font-mono text-[11px] tracking-[0.7px]">
+      <div className="flex flex-wrap gap-2 sm:gap-3 mb-10 sm:mb-14 font-mono text-[11px] tracking-[0.7px]">
         {categories.map((category) => {
           const isActive = category === active;
           return (
@@ -61,8 +61,8 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
       {/* Year sections */}
       {years.map(([year, posts]) => (
         <section key={year} className="mb-14">
-          <div className="grid grid-cols-[80px_1fr] gap-6 items-baseline border-t border-foreground pt-5 mb-2">
-            <h2 className="font-fraunces font-light text-[56px] tracking-[-1.68px] leading-none">
+          <div className="grid grid-cols-[1fr_auto] sm:grid-cols-[80px_1fr] gap-6 items-baseline border-t border-foreground pt-5 mb-2">
+            <h2 className="font-fraunces font-light text-[44px] sm:text-[56px] tracking-[-0.03em] leading-none">
               {year}
             </h2>
             <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] text-right">
@@ -73,14 +73,14 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
             <Link
               key={post.slug}
               href={`/writing/${post.slug}`}
-              className="grid grid-cols-[80px_1fr_90px] gap-6 items-start py-6 border-t border-edge last:border-b cursor-none transition-colors hover:bg-accent/5"
+              className="grid grid-cols-[1fr_auto] gap-x-6 gap-y-2 sm:grid-cols-[80px_1fr_90px] sm:gap-6 items-start py-5 sm:py-6 border-t border-edge last:border-b cursor-none transition-colors hover:bg-accent/5"
             >
-              <div className="font-mono text-muted text-[11px] tracking-[0.7px] pt-1.5">
+              <div className="font-mono text-muted text-[11px] tracking-[0.7px] sm:pt-1.5">
                 {post.dateDisplay}
               </div>
-              <div>
-                <div className="flex gap-3 items-baseline mb-2">
-                  <h3 className="font-fraunces text-2xl tracking-[-0.36px] leading-tight">
+              <div className="order-last col-span-full sm:order-none sm:col-span-1">
+                <div className="flex flex-wrap gap-x-3 gap-y-1.5 items-baseline mb-2">
+                  <h3 className="font-fraunces text-[22px] sm:text-2xl tracking-[-0.36px] leading-tight">
                     {post.title}
                   </h3>
                   {post.category && (
@@ -95,7 +95,7 @@ export default function WritingArchive({ entries }: { entries: ArchiveEntry[] })
                   </p>
                 )}
               </div>
-              <div className="font-mono text-muted text-[10px] tracking-[0.6px] text-right pt-2">
+              <div className="font-mono text-muted text-[10px] tracking-[0.6px] text-right sm:pt-2">
                 {post.readDisplay} →
               </div>
             </Link>

@@ -28,18 +28,18 @@ export default async function Talks() {
       </div>
 
       {/* Hero */}
-      <h1 className="font-fraunces font-light text-[96px] tracking-[-3.36px] leading-[0.95] mb-5">
+      <h1 className="font-fraunces font-light text-[56px] sm:text-[72px] md:text-[96px] tracking-[-0.035em] leading-[0.95] mb-5">
         Talks
       </h1>
-      <p className="font-fraunces-italic italic font-light text-[22px] leading-snug text-muted mb-18 max-w-[640px]">
+      <p className="font-fraunces-italic italic font-light text-lg sm:text-[22px] leading-snug text-muted mb-14 sm:mb-18 max-w-[640px]">
         I speak about small software, visualisation, and the craft of
         shipping things quietly.
       </p>
 
       {/* Upcoming */}
-      <section className="mb-20">
+      <section className="mb-16 sm:mb-20">
         <div className="flex gap-3 items-center mb-7">
-          <span className="w-2 h-2 rounded-full bg-accent shadow-[0px_0px_0px_4px_rgba(124,58,237,0.15)]" />
+          <span className="w-2 h-2 rounded-full bg-accent ring-4 ring-accent/15" />
           <h2 className="font-fraunces-italic italic font-normal text-[28px] tracking-[-0.42px]">
             Upcoming
           </h2>
@@ -50,7 +50,7 @@ export default async function Talks() {
             {upcoming.map((talk) => (
               <article
                 key={talk.slug}
-                className="grid grid-cols-[200px_1fr_auto] gap-8 px-8 py-7 bg-(--sidebar) border border-edge items-start"
+                className="grid grid-cols-[1fr_auto] gap-4 px-5 py-6 sm:px-8 sm:py-7 md:grid-cols-[200px_1fr_auto] md:gap-8 bg-(--sidebar) border border-edge items-start"
               >
                 <div>
                   <div className="font-mono uppercase text-accent text-[11px] tracking-[0.9px] mb-2.5">
@@ -62,8 +62,8 @@ export default async function Talks() {
                     </div>
                   )}
                 </div>
-                <div>
-                  <h3 className="font-fraunces text-[30px] tracking-[-0.6px] leading-tight mb-2.5">
+                <div className="order-last col-span-full md:order-none md:col-span-1">
+                  <h3 className="font-fraunces text-2xl sm:text-[30px] tracking-[-0.6px] leading-tight mb-2.5">
                     {talk.title}
                   </h3>
                   {talk.venue && (
@@ -81,12 +81,12 @@ export default async function Talks() {
             ))}
           </div>
         ) : (
-          <article className="grid grid-cols-[200px_1fr_auto] gap-8 px-8 py-7 bg-(--sidebar) border border-edge items-start">
+          <article className="grid grid-cols-[1fr_auto] gap-4 px-5 py-6 sm:px-8 sm:py-7 md:grid-cols-[200px_1fr_auto] md:gap-8 bg-(--sidebar) border border-edge items-start">
             <div className="font-mono uppercase text-accent text-[11px] tracking-[0.9px]">
               2026 season
             </div>
-            <div>
-              <h3 className="font-fraunces text-[30px] tracking-[-0.6px] leading-tight mb-2.5">
+            <div className="order-last col-span-full md:order-none md:col-span-1">
+              <h3 className="font-fraunces text-2xl sm:text-[30px] tracking-[-0.6px] leading-tight mb-2.5">
                 Currently scheduling
               </h3>
               <div className="text-sm text-muted leading-normal">
@@ -110,14 +110,14 @@ export default async function Talks() {
 
       {/* Past (hidden while empty) */}
       {past.length > 0 && (
-        <section className="mb-20">
+        <section className="mb-16 sm:mb-20">
           <h2 className="font-fraunces-italic italic font-normal text-[28px] tracking-[-0.42px] mb-2 pb-5 border-b border-foreground">
             Past
           </h2>
           {past.map((talk) => (
             <article
               key={talk.slug}
-              className="grid grid-cols-[120px_1fr_200px] gap-6 py-6 border-b border-edge items-baseline"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-[120px_1fr_200px] sm:gap-6 py-6 border-b border-edge items-baseline"
             >
               <div className="font-mono text-muted text-[11px] tracking-[0.7px]">
                 {talk.date}
@@ -130,7 +130,7 @@ export default async function Talks() {
                   <div className="text-[13px] text-muted">{talk.venue}</div>
                 )}
               </div>
-              <div className="flex gap-2.5 justify-end">
+              <div className="flex flex-wrap gap-2.5 sm:justify-end">
                 {talk.links.map((link) => (
                   <a
                     key={link.label}
@@ -147,12 +147,12 @@ export default async function Talks() {
       )}
 
       {/* What I speak about + booking */}
-      <section className="grid grid-cols-2 gap-12 pt-10 border-t border-edge">
+      <section className="grid grid-cols-1 gap-10 md:grid-cols-2 md:gap-12 pt-10 border-t border-edge">
         <div>
           <div className="font-mono font-medium uppercase text-accent text-[10px] tracking-[1.4px] mb-3.5">
             — What I speak about
           </div>
-          <ul className="font-fraunces-italic italic font-light text-xl leading-loose">
+          <ul className="font-fraunces-italic italic font-light text-lg sm:text-xl leading-loose">
             {TOPICS.map((topic) => (
               <li key={topic}>— {topic}</li>
             ))}

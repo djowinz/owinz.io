@@ -1,7 +1,8 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
-/*@custom-variant dark (&:is(.dark *));*/
+/* next-themes toggles `.dark` on <html>; `dark:` utilities follow it. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
     --background: #f8f7f4;
@@ -10,10 +11,25 @@
     --muted: #6b6b6b;
     --edge: #e0dfd8;
     --accent: #7c3aed;
+    --accent-foreground: #ffffff;
     --secondary: #f0efe9;
     --secondary-foreground: #2a2a2a;
     --muted-foreground: #666666;
     --border: #e0dfd8;
+}
+
+.dark {
+    --background: #141311;
+    --sidebar: #1b1a17;
+    --foreground: #f0ece3;
+    --muted: #8f8a7f;
+    --edge: #2d2b26;
+    --accent: #b69bff;
+    --accent-foreground: #141311;
+    --secondary: #24221e;
+    --secondary-foreground: #e4dfd4;
+    --muted-foreground: #8f8a7f;
+    --border: #2d2b26;
 }
 
 @theme inline {
@@ -28,21 +44,11 @@
     --color-muted: var(--muted);
     --color-muted-foreground: var(--muted-foreground);
     --color-accent: var(--accent);
+    --color-accent-foreground: var(--accent-foreground);
     --color-border: var(--border);
     --color-edge: var(--edge);
-    --drop-shadow-indicator: 0px 0px 0px 3px rgba(124, 58, 237, 0.15);
+    --color-sidebar: var(--sidebar);
 }
-
-/*@media (prefers-color-scheme: dark) {
-    :root {
-        --background: #141311;
-        --sidebar: #1b1a17;
-        --foreground: #f0ece3;
-        --muted: #8a857a;
-        --edge: #2d2b26;
-        --accent: #b69bff;
-    }
-}*/
 
 html {
     /* Reserve the scrollbar gutter so short pages (no scrollbar) don't
@@ -57,14 +63,15 @@ body {
 
 ::selection {
     background-color: var(--accent);
-    color: white;
+    color: var(--accent-foreground);
 }
 
 /* Prose styling for markdown content — editorial article style */
 .prose {
     @apply text-foreground;
-    font-size: 18px;
+    font-size: 17px;
     line-height: 1.7;
+    overflow-wrap: break-word;
 }
 
 .prose:not(.prose-sections) > p:first-of-type::first-letter {
@@ -77,14 +84,15 @@ body {
 
 .prose h1 {
     @apply font-fraunces font-light tracking-[-0.02em] mt-12 mb-4 text-foreground;
-    font-size: 40px;
+    font-size: 32px;
     line-height: 1.05;
 }
 
 .prose h2 {
     @apply font-fraunces-italic italic font-normal tracking-[-0.02em] text-foreground;
-    font-size: 32px;
-    margin: 48px 0 16px;
+    font-size: 26px;
+    line-height: 1.15;
+    margin: 40px 0 16px;
 }
 
 .prose h3 {
@@ -127,11 +135,11 @@ body {
 .prose blockquote {
     @apply font-fraunces-italic italic font-light text-foreground border-l border-accent;
     background: var(--sidebar);
-    font-size: 26px;
+    font-size: 22px;
     line-height: 1.3;
     letter-spacing: -0.015em;
-    margin: 40px 0;
-    padding: 28px 32px;
+    margin: 32px 0;
+    padding: 20px 20px;
 }
 
 .prose blockquote p {
@@ -159,6 +167,37 @@ body {
 
 .prose img {
     @apply my-8 border border-edge;
+}
+
+.prose table {
+    @apply block max-w-full overflow-x-auto mb-6 text-sm;
+}
+
+.prose th,
+.prose td {
+    @apply border border-edge px-3 py-2 text-left;
+}
+
+/* Desktop prose sizes — the mobile values above step up from `sm`. */
+@media (width >= 40rem) {
+    .prose {
+        font-size: 18px;
+    }
+
+    .prose h1 {
+        font-size: 40px;
+    }
+
+    .prose h2 {
+        font-size: 32px;
+        margin: 48px 0 16px;
+    }
+
+    .prose blockquote {
+        font-size: 26px;
+        margin: 40px 0;
+        padding: 28px 32px;
+    }
 }
 
 /* Project case studies: section counters on h2 (§ 01, § 02 …) */

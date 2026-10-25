@@ -28,6 +28,8 @@ export function DistortionPortrait({
   const isHovering = useRef(false);
   const effectStrength = useRef(0);
   const targetStrength = useRef(0);
+  // Whether the resting (undistorted) frame is already on the canvas.
+  const idleFrameDrawn = useRef(false);
 
   const drawDistortion = useCallback(() => {
     const canvas = canvasRef.current;
@@ -46,17 +48,22 @@ export function DistortionPortrait({
     effectStrength.current +=
       (targetStrength.current - effectStrength.current) * strengthLerp;
 
-    // Clear canvas
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // If effect is nearly invisible, just draw the image normally
+    // If effect is nearly invisible, just draw the image normally — once.
+    // Skipping repeat idle frames keeps the rAF loop cheap, including for
+    // the sidebar copy that sits hidden on small screens.
     if (effectStrength.current < 0.01) {
+      if (idleFrameDrawn.current) return;
+      idleFrameDrawn.current = true;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.filter = isDark ? "invert(1)" : "none";
       ctx.globalAlpha = 0.9;
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       ctx.filter = "none";
       return;
     }
+
+    idleFrameDrawn.current = false;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const mx = mousePos.current.x;
     const my = mousePos.current.y;
@@ -148,6 +155,8 @@ export function DistortionPortrait({
   useEffect(() => {
     if (!isLoaded) return;
 
+    // drawDistortion changes with the theme; repaint the resting frame.
+    idleFrameDrawn.current = false;
     let frame: number;
     const loop = () => {
       drawDistortion();

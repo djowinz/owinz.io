@@ -36,12 +36,12 @@ export default function Contact() {
         <span>{SITE.timezone}</span>
       </div>
 
-      <h1 className="font-fraunces font-light text-[96px] tracking-[-3.36px] leading-[0.95] mb-16">
+      <h1 className="font-fraunces font-light text-[56px] sm:text-[72px] md:text-[96px] tracking-[-0.035em] leading-[0.95] mb-12 sm:mb-16">
         Say <em className="font-fraunces-italic text-accent">hello</em>.
       </h1>
 
       {/* Letter */}
-      <div className="font-fraunces font-light text-2xl tracking-[-0.12px] leading-normal mb-18 max-w-[720px]">
+      <div className="font-fraunces font-light text-xl sm:text-2xl tracking-[-0.12px] leading-normal mb-14 sm:mb-18 max-w-[720px]">
         <p className="mb-6">
           The best way to reach me is{" "}
           <a
@@ -72,7 +72,7 @@ export default function Contact() {
       </div>
 
       {/* Channels + reply lists */}
-      <div className="grid grid-cols-[1.1fr_1fr] gap-16 border-t border-edge pt-10">
+      <div className="grid grid-cols-1 gap-12 md:grid-cols-[1.1fr_1fr] md:gap-16 border-t border-edge pt-10">
         <section>
           <div className="font-mono font-medium uppercase text-accent text-[10px] tracking-[1.4px] mb-5">
             — Channels
@@ -80,7 +80,7 @@ export default function Contact() {
           {CHANNELS.map(([label, display, url, note]) => (
             <div
               key={label}
-              className="grid grid-cols-[100px_1fr] gap-5 py-4.5 border-b border-edge items-baseline"
+              className="grid grid-cols-[80px_1fr] sm:grid-cols-[100px_1fr] gap-5 py-4.5 border-b border-edge items-baseline"
             >
               <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px]">
                 {label}
@@ -88,7 +88,7 @@ export default function Contact() {
               <div>
                 <a
                   href={url}
-                  className="block font-fraunces text-xl tracking-[-0.2px] cursor-none transition-colors hover:text-accent"
+                  className="block break-words font-fraunces text-lg sm:text-xl tracking-[-0.2px] cursor-none transition-colors hover:text-accent"
                 >
                   {display}
                 </a>
@@ -102,7 +102,7 @@ export default function Contact() {
           <div className="font-mono font-medium uppercase text-accent text-[10px] tracking-[1.4px] mb-5">
             — What I reply to
           </div>
-          <ul className="font-fraunces-italic italic font-light text-lg leading-normal mb-7">
+          <ul className="font-fraunces-italic italic font-light text-base sm:text-lg leading-normal mb-7">
             {REPLIES.map((item) => (
               <li key={item} className="flex gap-3 py-2">
                 <span className="text-accent not-italic">+</span>
@@ -126,7 +126,7 @@ export default function Contact() {
       </div>
 
       {/* Sign-off */}
-      <div className="mt-20 pt-8 border-t border-edge flex justify-between items-baseline">
+      <div className="mt-16 sm:mt-20 pt-8 border-t border-edge flex flex-wrap gap-6 justify-between items-baseline">
         <div>
           <div className="font-fraunces-italic italic font-light text-[28px] tracking-[-0.28px] mb-1">
             — Dyllen

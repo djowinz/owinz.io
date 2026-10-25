@@ -55,18 +55,18 @@ export default async function RecentProjects({
             href={`/projects/${project.slug}`}
             className="flex flex-row py-4.5 items-center border-b border-edge last:border-none cursor-none transition-colors hover:bg-accent/5"
           >
-            <span className="font-mono text-muted tracking-[1.4px] text-[10px] uppercase font-medium pr-8">
+            <span className="font-mono text-muted tracking-[1.4px] text-[10px] uppercase font-medium pr-6 sm:pr-8">
               0{idx + 1}
             </span>
-            <div className="flex flex-col">
-              <h2 className="font-fraunces text-[28px] tracking-[-0.19px] leading-6">
+            <div className="flex flex-col min-w-0">
+              <h2 className="font-fraunces text-[28px] tracking-[-0.19px] leading-7">
                 {project.title}
               </h2>
               <span className="font-mono text-muted tracking-[1px] mt-1.5 text-[10px] uppercase font-medium">
                 {project.category}
               </span>
             </div>
-            <span className="font-mono text-muted tracking-[1.4px] text-[10px] uppercase font-medium ml-auto">
+            <span className="font-mono text-muted tracking-[1.4px] text-[10px] uppercase font-medium ml-auto pl-4">
               {format(project.date, "yyyy")}
             </span>
           </Link>
@@ -76,7 +76,7 @@ export default async function RecentProjects({
   };
 
   return (
-    <section className="flex flex-col grow basis-0">
+    <section className="flex flex-col grow md:basis-0 min-w-0">
       <div className="flex justify-between items-center mb-5 pb-4 border-b border-edge">
         <h2 className="font-fraunces-italic italic font-medium text-foreground text-[22px]">
           {title}
@@ -89,7 +89,7 @@ export default async function RecentProjects({
           <ArrowRight className="inline w-2 h-2 ml-2" />
         </Link>
       </div>
-      <div className="flex flex-col grow basis-0">
+      <div className="flex flex-col grow">
         {listDisplayContentRow()}
       </div>
     </section>
