@@ -24,6 +24,9 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import { users } from "./auth-schema";
+
+export * from "./auth-schema";
 
 /** Whether the content is on the site; drafts are visible only in the CMS. */
 export const publishState = pgEnum("publish_state", ["draft", "published"]);
@@ -40,10 +43,10 @@ const timestamps = {
 const slugCheck = (table: string, column: { name: string }) =>
   check(`${table}_slug_format`, sql.raw(`"${column.name}" ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`));
 
-/** CMS user ids (Better Auth's `user.id`); null for imported content. */
+/** CMS accounts that created and last changed the row; null for imported content or removed users. */
 const authorship = {
-  createdBy: text("created_by"),
-  updatedBy: text("updated_by"),
+  createdBy: text("created_by").references(() => users.id, { onDelete: "set null" }),
+  updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
 };
 
 /** Live state of a post or project; see the note at the top of the file. */

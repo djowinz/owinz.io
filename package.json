@@ -15,6 +15,7 @@
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "content:check": "node scripts/validate-content.mjs",
     "content:import": "tsx --env-file-if-exists=.env.local scripts/import-content.ts",
+    "cms:invite": "tsx --env-file-if-exists=.env.local scripts/cms-invite.ts",
     "seo:audit": "node scripts/seo-audit.mjs"
   },
   "dependencies": {
@@ -22,6 +23,7 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.8.2",
     "@vercel/speed-insights": "^2.0.0",
+    "better-auth": "^1.7.13",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "drizzle-orm": "^0.45.4",
