@@ -14,7 +14,7 @@ async function expectNoPeople(page) {
   await nav.getByRole("link", { name: "Writing", exact: true }).waitFor();
   assert((await nav.getByRole("link", { name: "People", exact: true }).count()) === 0, "no People link");
   await page.goto("/admin/users/");
-  await page.getByRole("heading", { level: 1, name: /Nothing/ }).waitFor();
+  await page.getByRole("heading", { level: 1, name: "Not found." }).waitFor(); // the CMS 404, in the CMS chrome
   assert((await page.getByText("Who can sign in.").count()) === 0, "the People page doesn't render");
 }
 

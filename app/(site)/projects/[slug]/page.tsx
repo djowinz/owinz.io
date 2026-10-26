@@ -6,6 +6,7 @@ import { JsonLd } from "@/components/JsonLd";
 import { breadcrumbSchema, projectSchema } from "@/lib/schema";
 import { isoDate, pageMetadata } from "@/lib/seo";
 import { withPlaceholder } from "@/lib/static-params";
+import { notFoundMetadata } from "@/components/NotFoundContent";
 
 interface ProjectPageProps {
   params: Promise<{ slug: string }>;
@@ -26,7 +27,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: ProjectPageProps) {
   const { slug } = await params;
   const project = await getProject(slug);
-  if (!project) return { title: "Project Not Found" };
+  if (!project) return notFoundMetadata;
   return pageMetadata({
     title: project.title,
     description: project.description,

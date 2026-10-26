@@ -2,6 +2,7 @@ import { getWritingPost, getWritingPosts } from "@/lib/content";
 import { ArticleView } from "@/components/ArticleView";
 import { isoDate, pageMetadata } from "@/lib/seo";
 import { found, withPlaceholder } from "@/lib/static-params";
+import { notFoundMetadata } from "@/components/NotFoundContent";
 
 // An unknown slug gets a real 404 on its first request (lib/static-params.ts).
 export const ensureStatic = "navigation";
@@ -21,7 +22,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: WritingPostPageProps) {
   const { slug } = await params;
   const post = await getWritingPost(slug);
-  if (!post) return { title: "Post Not Found" };
+  if (!post) return notFoundMetadata;
   return pageMetadata({
     title: post.title,
     description: post.description,

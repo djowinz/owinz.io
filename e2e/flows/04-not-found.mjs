@@ -1,7 +1,7 @@
 // Unknown URLs under dynamic routes are real 404s on the very first request
 // (lib/static-params.ts), and stay 404; known ones are 200. Add new dynamic
 // routes to ROUTES.
-import { assert, get, unique } from "../lib.mjs";
+import { assert, get, newPage, unique } from "../lib.mjs";
 
 const ROUTES = [
   "/writing/{}/",
@@ -43,6 +43,21 @@ export const flows = [
         assert(res.status === 200, `${path}: 200 (got ${res.status})`);
         assert(/<h1[\s>]/.test(res.text), `${path}: server-rendered <h1>`);
       }
+    },
+  },
+  {
+    name: "the 404 page renders the site chrome once",
+    async run({ contextFor }) {
+      const context = await contextFor(null);
+      const page = await newPage(context);
+      for (const route of [...ROUTES, "/{}/"]) {
+        const path = route.replace("{}", `no-such-page-${unique()}`);
+        await page.goto(path);
+        await page.getByRole("heading", { level: 1, name: /Nothing/ }).waitFor();
+        const chrome = await page.locator("main").count();
+        assert(chrome === 1, `${path}: one <main> (got ${chrome})`);
+      }
+      await context.close();
     },
   },
 ];
