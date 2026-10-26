@@ -368,3 +368,43 @@ body {
     outline: 2px solid var(--accent);
     outline-offset: 3px;
 }
+
+/* Reading progress (components/ReadingProgress.tsx): a bar across the top of
+   article pages, in the accent color, that fills as the article body scrolls
+   past — from the body's top reaching the top of the screen to its bottom
+   reaching the bottom. Pure CSS where scroll-driven animations exist. */
+.reading-progress {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 60; /* above the mobile header (z-50) */
+    height: 3px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: 0 50%;
+    pointer-events: none;
+}
+
+@supports (animation-timeline: view()) {
+    [data-reading] {
+        timeline-scope: --reading;
+    }
+
+    [data-reading] .prose {
+        view-timeline: --reading block;
+    }
+
+    .reading-progress {
+        animation: reading-progress linear both;
+        animation-timeline: --reading;
+        animation-range: contain 0% contain 100%;
+    }
+}
+
+@keyframes reading-progress {
+    from {
+        transform: scaleX(0);
+    }
+    to {
+        transform: scaleX(1);
+    }
+}
