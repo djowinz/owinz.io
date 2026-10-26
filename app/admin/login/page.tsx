@@ -6,6 +6,9 @@ import { devLoginEnabled } from "@/lib/auth";
 import { getCmsUser } from "@/lib/cms/session";
 
 export const metadata = { title: "Sign in" };
+// The CMS is signed-in and dynamic: navigations may wait for data (opts out of
+// the instant-navigation check, which is per page, not inherited from layouts).
+export const instant = false;
 
 const NOT_INVITED = "That account hasn't been invited to the CMS. Ask an editor for an invite.";
 

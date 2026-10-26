@@ -9,6 +9,9 @@ import { requireCmsUser } from "@/lib/cms/session";
 import { SITE } from "@/lib/site";
 
 export const metadata = { title: "Edit post" };
+// The CMS is signed-in and dynamic: navigations may wait for data (opts out of
+// the instant-navigation check, which is per page, not inherited from layouts).
+export const instant = false;
 
 export default async function EditPostPage({ params }: { params: Promise<{ id: string }> }) {
   const user = await requireCmsUser();

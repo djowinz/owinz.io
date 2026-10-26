@@ -8,6 +8,9 @@ import { requireCmsUser } from "@/lib/cms/session";
 import { displayName, listMembers } from "@/lib/cms/users";
 
 export const metadata = { title: "People" };
+// The CMS is signed-in and dynamic: navigations may wait for data (opts out of
+// the instant-navigation check, which is per page, not inherited from layouts).
+export const instant = false;
 
 export default async function PeoplePage() {
   const user = await requireCmsUser();

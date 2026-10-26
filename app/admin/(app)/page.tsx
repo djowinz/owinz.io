@@ -6,6 +6,9 @@ import { requireCmsUser } from "@/lib/cms/session";
 import { getDb } from "@/lib/db";
 
 export const metadata = { title: "Overview" };
+// The CMS is signed-in and dynamic: navigations may wait for data (opts out of
+// the instant-navigation check, which is per page, not inherited from layouts).
+export const instant = false;
 
 function Collection({ title, data, href }: { title: string; data: CollectionOverview; href?: string }) {
   return (
