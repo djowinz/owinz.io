@@ -1,7 +1,7 @@
 // Categories and tags (the `terms` table) as the content layer reads them.
 import { and, asc, eq, inArray } from "drizzle-orm";
 import type { Db } from "../db";
-import { postTags, terms, type TermRow } from "../db/schema";
+import { postTags, projectTags, terms, type TermRow } from "../db/schema";
 import type { TermRef } from "./types";
 
 export type Collection = TermRow["collection"];
@@ -51,4 +51,27 @@ export function resolveRefs(ids: readonly string[] | undefined, byId: Map<string
     const term = byId.get(id);
     return term ? [toRef(term)] : [];
   });
+}
+
+/** A project's technology ids (projects tags), in the author's order. */
+export async function projectTagIds(db: Db, projectId: string): Promise<string[]> {
+  const rows = await db
+    .select({ id: projectTags.termId })
+    .from(projectTags)
+    .where(eq(projectTags.projectId, projectId))
+    .orderBy(asc(projectTags.position));
+  return rows.map((r) => r.id);
+}
+
+/** Technology ids for several projects at once. */
+export async function projectsTagIds(db: Db, projectIds: string[]): Promise<Map<string, string[]>> {
+  const byProject = new Map<string, string[]>();
+  if (projectIds.length === 0) return byProject;
+  const rows = await db
+    .select()
+    .from(projectTags)
+    .where(inArray(projectTags.projectId, projectIds))
+    .orderBy(asc(projectTags.position));
+  for (const row of rows) byProject.set(row.projectId, [...(byProject.get(row.projectId) ?? []), row.termId]);
+  return byProject;
 }

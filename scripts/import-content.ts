@@ -18,7 +18,7 @@ import {
 } from "../lib/content/files";
 import { publishPost, publishProject } from "../lib/content/publishing";
 import { getDb, type Db } from "../lib/db";
-import { assets, posts, postTags, projects, talks } from "../lib/db/schema";
+import { assets, posts, postTags, projects, projectTags, talks } from "../lib/db/schema";
 import { ensureTerm } from "../lib/cms/taxonomy";
 import { prepareImage } from "../lib/images";
 
@@ -93,16 +93,26 @@ async function importWriting() {
 
 async function importProjects() {
   for (const entry of markdownEntries(path.join(CONTENT_DIR, "projects"))) {
-    const { status, order, ...source } = projectSource(entry);
+    const { status, order, category: categoryRef, technologies, ...source } = projectSource(entry);
     log(`projects/${source.slug}`);
     if (dryRun) continue;
+
+    // Frontmatter category and technologies become (or reuse) projects terms.
+    const category = categoryRef
+      ? await ensureTerm(db, { kind: "category", collection: "projects", name: categoryRef.name })
+      : null;
+    const technologyIds: string[] = [];
+    for (const tech of technologies ?? []) {
+      const term = await ensureTerm(db, { kind: "tag", collection: "projects", name: tech.name });
+      if (!technologyIds.includes(term.id)) technologyIds.push(term.id);
+    }
 
     const fields = {
       ...source,
       description: source.description ?? "",
       purpose: source.purpose ?? "",
       challenge: source.challenge ?? "",
-      technologies: source.technologies ?? [],
+      categoryId: category?.id ?? null,
       projectStatus: status ?? null,
       sortOrder: order ?? 0,
       body: source.body.trim(),
@@ -112,6 +122,12 @@ async function importProjects() {
       .values(fields)
       .onConflictDoUpdate({ target: projects.slug, set: fields })
       .returning();
+    await db.delete(projectTags).where(eq(projectTags.projectId, row.id));
+    if (technologyIds.length) {
+      await db
+        .insert(projectTags)
+        .values(technologyIds.map((termId, position) => ({ projectId: row.id, termId, position })));
+    }
     await publishProject(db, row.id);
   }
 }

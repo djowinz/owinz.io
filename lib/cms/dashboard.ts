@@ -4,7 +4,7 @@ import { desc, eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { posts, projects, revisions, talks } from "../db/schema";
 import { postSnapshot, projectSnapshot, snapshotHash } from "../content/revisions";
-import { postsTagIds } from "../content/terms";
+import { postsTagIds, projectsTagIds } from "../content/terms";
 
 export interface OverviewItem {
   id: string;
@@ -50,7 +50,10 @@ export async function overview(db: Db): Promise<Overview> {
       .orderBy(desc(projects.updatedAt)),
     db.select().from(talks).orderBy(desc(talks.updatedAt)),
   ]);
-  const tagsByPost = await postsTagIds(db, postRows.map((r) => r.row.id));
+  const [tagsByPost, techByProject] = await Promise.all([
+    postsTagIds(db, postRows.map((r) => r.row.id)),
+    projectsTagIds(db, projectRows.map((r) => r.row.id)),
+  ]);
 
   return {
     writing: summarize(
@@ -71,7 +74,7 @@ export async function overview(db: Db): Promise<Overview> {
         title: row.title,
         slug: row.slug,
         state: row.state,
-        unpublishedChanges: row.state === "published" && (!live || snapshotHash(live) !== snapshotHash(projectSnapshot(row))),
+        unpublishedChanges: row.state === "published" && (!live || snapshotHash(live) !== snapshotHash(projectSnapshot(row, techByProject.get(row.id) ?? []))),
         updatedAt: row.updatedAt,
       })),
     ),

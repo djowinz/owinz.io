@@ -75,18 +75,23 @@ export function writingSource(entry: MarkdownEntry): WritingSource {
   };
 }
 
-/** Photos resolve to files beside a folder-style post. */
-function folderResolver(entry: MarkdownEntry) {
+/** Photos resolve to files beside a folder-style post or project. */
+function folderResolver(entry: MarkdownEntry, collection: "writing" | "projects" = "writing") {
   const { folder } = entry;
   if (!folder) return undefined;
   return async (name: string) => {
     const file = path.join(folder, name);
     if (!fs.existsSync(file)) return undefined;
     return {
-      src: `/writing/${entry.slug}/${encodeURIComponent(name)}`,
+      src: `/${collection}/${entry.slug}/${encodeURIComponent(name)}`,
       ...(await shippedImageSize(file)),
     };
   };
+}
+
+/** A project file rendered, with photos beside a folder-style project. */
+export function parseProject(entry: MarkdownEntry): Promise<ProjectPost> {
+  return buildProject(projectSource(entry), folderResolver(entry, "projects"));
 }
 
 export function parseWriting(entry: MarkdownEntry): Promise<WritingPost> {
@@ -114,8 +119,10 @@ export function projectSource(entry: MarkdownEntry): ProjectSource {
     description: data.description || "",
     purpose: data.purpose || "",
     challenge: data.challenge || "",
-    technologies: stringList(data.technologies),
-    category: data.category ?? null,
+    technologies: stringList(data.technologies).map((name) => ({ name, slug: slugify(name) })),
+    category: typeof data.category === "string" && data.category.trim()
+      ? { name: data.category.trim(), slug: slugify(data.category) }
+      : null,
     role: data.role ?? null,
     status: data.status ?? null,
     platform: data.platform ?? null,
@@ -130,9 +137,7 @@ export function projectSource(entry: MarkdownEntry): ProjectSource {
 }
 
 export async function getProjects(dir: string = DIRS.projects): Promise<ProjectPost[]> {
-  const projects = await Promise.all(
-    markdownEntries(dir).map((entry) => buildProject(projectSource(entry))),
-  );
+  const projects = await Promise.all(markdownEntries(dir).map(parseProject));
   return projects.sort((a, b) => a.order - b.order);
 }
 
@@ -141,7 +146,7 @@ export async function getProject(
   dir: string = DIRS.projects,
 ): Promise<ProjectPost | null> {
   const entry = markdownEntries(dir).find((e) => e.slug === slug);
-  return entry ? buildProject(projectSource(entry)) : null;
+  return entry ? parseProject(entry) : null;
 }
 
 export function talkSource(entry: MarkdownEntry): TalkSource {

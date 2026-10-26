@@ -1,10 +1,11 @@
-// Categories and tags in the CMS. Editors and writers manage them; anyone
-// who can create content can add a new tag while editing. Posts refer to
-// terms by id (drafts and published versions alike), so renames show
-// everywhere at once and deletes are only allowed for unused terms.
+// Categories and tags in the CMS, for writing and for projects (whose tags
+// are shown as "Technologies"). Editors and writers manage them; anyone who
+// can create content can add a new tag while editing. Posts and projects
+// refer to terms by id (drafts and published versions alike), so renames
+// show everywhere at once and deletes are only allowed for unused terms.
 import { and, asc, eq, inArray, ne, sql } from "drizzle-orm";
 import type { Db } from "../db";
-import { posts, postTags, revisions, terms, type TermRow } from "../db/schema";
+import { posts, postTags, projects, projectTags, revisions, terms, type TermRow } from "../db/schema";
 import type { Collection } from "../content/terms";
 import { assertCan, type Actor } from "./permissions";
 import { SLUG, slugify } from "./validate";
@@ -16,7 +17,7 @@ type Kind = TermRow["kind"];
 export interface TermUsage extends TermRow {
   /** Drafts using it (the editable rows). */
   drafts: number;
-  /** Live posts whose published version uses it. */
+  /** Live posts (or projects) whose published version uses it. */
   live: number;
 }
 
@@ -69,7 +70,7 @@ async function byName(db: Db, kind: Kind, collection: Collection, name: string, 
   return term;
 }
 
-/** Categories (in display order) and tags (by name), with how many posts use each. */
+/** Categories (in display order) and tags (by name), with how many posts or projects use each. */
 export async function listTaxonomy(db: Db, collection: Collection): Promise<{ categories: TermUsage[]; tags: TermUsage[] }> {
   const rows = await db
     .select()
@@ -93,6 +94,18 @@ export async function listTaxonomy(db: Db, collection: Collection): Promise<{ ca
     for (const { snapshot } of snapshots) {
       bump(live, snapshot.categoryId);
       for (const id of (snapshot.tagIds as unknown[] | undefined) ?? []) bump(live, id);
+    }
+  } else {
+    for (const { id } of await db.select({ id: projects.categoryId }).from(projects)) bump(drafts, id);
+    for (const { id } of await db.select({ id: projectTags.termId }).from(projectTags)) bump(drafts, id);
+    const snapshots = await db
+      .select({ snapshot: revisions.snapshot })
+      .from(projects)
+      .innerJoin(revisions, eq(revisions.id, projects.publishedRevisionId))
+      .where(eq(projects.state, "published"));
+    for (const { snapshot } of snapshots) {
+      bump(live, snapshot.categoryId);
+      for (const id of (snapshot.technologyIds as unknown[] | undefined) ?? []) bump(live, id);
     }
   }
   const withUsage = (t: TermRow): TermUsage => ({ ...t, drafts: drafts.get(t.id) ?? 0, live: live.get(t.id) ?? 0 });
@@ -190,8 +203,10 @@ export async function deleteTerm(db: Db, actor: Actor, id: string): Promise<void
     (t) => t.id === id,
   );
   if (usage && (usage.drafts || usage.live)) {
+    const noun = term.collection === "projects" ? "project" : "post";
+    const merge = term.collection === "projects" ? "Merge it into another technology" : "Merge it into another tag";
     throw new TaxonomyError(
-      `"${term.name}" is still used by ${usage.drafts} draft${usage.drafts === 1 ? "" : "s"} and ${usage.live} live post${usage.live === 1 ? "" : "s"}. ${term.kind === "tag" ? "Merge it into another tag" : "Move those posts to another category"} first.`,
+      `"${term.name}" is still used by ${usage.drafts} draft${usage.drafts === 1 ? "" : "s"} and ${usage.live} live ${noun}${usage.live === 1 ? "" : "s"}. ${term.kind === "tag" ? merge : `Move those ${noun}s to another category`} first.`,
     );
   }
   await db.delete(terms).where(eq(terms.id, id));
@@ -200,13 +215,37 @@ export async function deleteTerm(db: Db, actor: Actor, id: string): Promise<void
 /**
  * Folds one tag into another: every draft and every saved version (live or
  * not) that used `fromId` uses `intoId` instead, then `fromId` is deleted.
+ * Returns the tags' collection (whose pages need refreshing).
  */
-export async function mergeTags(db: Db, actor: Actor, fromId: string, intoId: string): Promise<void> {
+export async function mergeTags(db: Db, actor: Actor, fromId: string, intoId: string): Promise<Collection> {
   assertCan(actor, "manageTaxonomy");
   if (fromId === intoId) throw new TaxonomyError("Choose a different tag to merge into.");
   const [from, into] = [await find(db, fromId), await find(db, intoId)];
   if (from.kind !== "tag" || into.kind !== "tag" || from.collection !== into.collection) {
     throw new TaxonomyError("Only tags of the same collection can be merged.");
+  }
+
+  if (from.collection === "projects") {
+    // Drafts: projects that had both keep one; the rest are repointed.
+    const haveInto = (await db.select({ id: projectTags.projectId }).from(projectTags).where(eq(projectTags.termId, intoId))).map((r) => r.id);
+    if (haveInto.length) {
+      await db.delete(projectTags).where(and(eq(projectTags.termId, fromId), inArray(projectTags.projectId, haveInto)));
+    }
+    await db.update(projectTags).set({ termId: intoId }).where(eq(projectTags.termId, fromId));
+    // Saved versions: replace the id inside snapshot.technologyIds, keeping order and dropping duplicates.
+    await db.execute(sql`
+      update ${revisions} r set snapshot = jsonb_set(r.snapshot, '{technologyIds}', coalesce((
+        select jsonb_agg(to_jsonb(q.id) order by q.ord) from (
+          select distinct on (id) id, ord from (
+            select case when x.id = ${fromId} then ${intoId} else x.id end as id, x.ord
+            from jsonb_array_elements_text(r.snapshot->'technologyIds') with ordinality as x(id, ord)
+          ) mapped order by id, ord
+        ) q
+      ), '[]'::jsonb))
+      where r.project_id is not null and r.snapshot->'technologyIds' ? ${fromId}
+    `);
+    await db.delete(terms).where(eq(terms.id, fromId));
+    return "projects";
   }
 
   // Drafts: posts that had both keep one; the rest are repointed.
@@ -233,4 +272,5 @@ export async function mergeTags(db: Db, actor: Actor, fromId: string, intoId: st
     where r.post_id is not null and r.snapshot->'tagIds' ? ${fromId}
   `);
   await db.delete(terms).where(eq(terms.id, fromId));
+  return from.collection;
 }

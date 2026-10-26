@@ -147,8 +147,8 @@ export const projects = pgTable(
     description: text("description").notNull().default(""),
     purpose: text("purpose").notNull().default(""),
     challenge: text("challenge").notNull().default(""),
-    technologies: text("technologies").array().notNull().default(sql`'{}'::text[]`),
-    category: text("category"),
+    /** A projects category (terms.kind = 'category'); technologies are in project_tags. */
+    categoryId: uuid("category_id").references((): AnyPgColumn => terms.id, { onDelete: "restrict" }),
     role: text("role"),
     /** Free-text status shown on the page, e.g. "Shipped · v1.3". */
     projectStatus: text("project_status"),
@@ -170,6 +170,21 @@ export const projects = pgTable(
     slugCheck("projects", t.slug),
     liveCheck("projects"),
   ],
+);
+
+/** A project's technologies (tags of the projects collection), in the order the author gave them. */
+export const projectTags = pgTable(
+  "project_tags",
+  {
+    projectId: uuid("project_id")
+      .notNull()
+      .references(() => projects.id, { onDelete: "cascade" }),
+    termId: uuid("term_id")
+      .notNull()
+      .references(() => terms.id, { onDelete: "restrict" }),
+    position: integer("position").notNull().default(0),
+  },
+  (t) => [primaryKey({ columns: [t.projectId, t.termId] }), index("project_tags_term_idx").on(t.termId)],
 );
 
 export interface TalkLink {

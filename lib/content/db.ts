@@ -28,7 +28,11 @@ import type { ProjectPost, Talk, WritingPost } from "./types";
 type PostFields = Pick<PostRow, "slug" | "title" | "excerpt" | "categoryId" | "date" | "updated" | "byline" | "body"> & {
   tagIds?: string[];
 };
-type ProjectFields = Omit<ProjectRow, "id" | "state" | "publishedSlug" | "publishedRevisionId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt">;
+/** A published project snapshot (lib/content/revisions.ts projectSnapshot). */
+type ProjectFields = Omit<
+  ProjectRow,
+  "id" | "sortOrder" | "state" | "publishedSlug" | "publishedRevisionId" | "createdBy" | "updatedBy" | "createdAt" | "updatedAt"
+> & { technologyIds?: string[] };
 
 /** Photo URL on the site; `v` changes when the photo is replaced, so it can be cached forever. */
 export function assetSrc(collection: "writing" | "projects", slug: string, asset: AssetRow): string {
@@ -36,13 +40,13 @@ export function assetSrc(collection: "writing" | "projects", slug: string, asset
   return `/${collection}/${slug}/${encodeURIComponent(asset.name)}?v=${version}`;
 }
 
-function resolverFor(slug: string, rows: AssetRow[] = []): ImageResolver {
+function resolverFor(slug: string, rows: AssetRow[] = [], collection: "writing" | "projects" = "writing"): ImageResolver {
   const byName = new Map(rows.map((row) => [row.name, row]));
   return async (name) => {
     const asset = byName.get(name);
     if (!asset) return undefined;
     return {
-      src: assetSrc("writing", slug, asset),
+      src: assetSrc(collection, slug, asset),
       ...(asset.width && asset.height ? { width: asset.width, height: asset.height } : {}),
     };
   };
@@ -101,27 +105,64 @@ export async function publishedPostAsset(db: Db, slug: string, name: string): Pr
   return row ?? null;
 }
 
-async function liveProjects(db: Db, where?: SQL): Promise<ProjectPost[]> {
+async function projectAssets(db: Db, projectIds: string[]): Promise<Map<string, AssetRow[]>> {
+  const byProject = new Map<string, AssetRow[]>();
+  if (projectIds.length === 0) return byProject;
+  for (const row of await db.select().from(assets).where(inArray(assets.projectId, projectIds))) {
+    byProject.set(row.projectId!, [...(byProject.get(row.projectId!) ?? []), row]);
+  }
+  return byProject;
+}
+
+/**
+ * Live projects as (id, rendered project) pairs, in /projects display order.
+ * The order comes from the row (reordering applies without republishing);
+ * everything else from the published revision.
+ */
+async function liveProjects(db: Db, where?: SQL): Promise<{ id: string; project: ProjectPost }[]> {
   const rows = await db
-    .select({ slug: projects.publishedSlug, snapshot: revisions.snapshot })
+    .select({ id: projects.id, slug: projects.publishedSlug, sortOrder: projects.sortOrder, snapshot: revisions.snapshot })
     .from(projects)
     .innerJoin(revisions, eq(revisions.id, projects.publishedRevisionId))
     .where(and(eq(projects.state, "published"), where));
-  return Promise.all(
-    rows.map(({ slug, snapshot }) => {
-      const fields = snapshot as ProjectFields;
-      return buildProject({ ...fields, slug: slug!, status: fields.projectStatus, order: fields.sortOrder });
+  const [byProject, byId] = await Promise.all([projectAssets(db, rows.map((r) => r.id)), termsById(db, "projects")]);
+  const live = await Promise.all(
+    rows.map(async ({ id, slug, sortOrder, snapshot }) => {
+      const { categoryId, technologyIds, projectStatus, ...fields } = snapshot as ProjectFields;
+      const category = categoryId ? byId.get(categoryId) : undefined;
+      const source = {
+        ...fields,
+        slug: slug!,
+        status: projectStatus,
+        order: sortOrder,
+        // Names come from the terms table, so a rename shows on every live project.
+        category: category ? toRef(category) : null,
+        technologies: resolveRefs(technologyIds, byId),
+      };
+      return { id, project: await buildProject(source, resolverFor(source.slug, byProject.get(id), "projects")) };
     }),
   );
+  return live.sort((a, b) => a.project.order - b.project.order || a.project.title.localeCompare(b.project.title));
 }
 
 export async function publishedProjects(db: Db): Promise<ProjectPost[]> {
-  return (await liveProjects(db)).sort((a, b) => a.order - b.order || a.title.localeCompare(b.title));
+  return (await liveProjects(db)).map((r) => r.project);
 }
 
 export async function publishedProject(db: Db, slug: string): Promise<ProjectPost | null> {
-  const [project] = await liveProjects(db, eq(projects.publishedSlug, slug));
-  return project ?? null;
+  const [live] = await liveProjects(db, eq(projects.publishedSlug, slug));
+  return live?.project ?? null;
+}
+
+/** A photo of a live project, if the live version shows it (in the text or as the cover). */
+export async function publishedProjectAsset(db: Db, slug: string, name: string): Promise<AssetRow | null> {
+  const [live] = await liveProjects(db, eq(projects.publishedSlug, slug));
+  if (!live?.project.images.includes(name)) return null;
+  const [row] = await db
+    .select()
+    .from(assets)
+    .where(and(eq(assets.projectId, live.id), eq(assets.name, name)));
+  return row ?? null;
 }
 
 export async function publishedTalks(db: Db, now: Date): Promise<{ upcoming: Talk[]; past: Talk[] }> {

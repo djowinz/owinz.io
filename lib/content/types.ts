@@ -55,6 +55,9 @@ export interface ProjectPost {
   challenge: string;
   technologies: string[];
   category?: string;
+  /** The category and technologies with their slugs, for /projects/category|technology/<slug>/. */
+  categoryRef?: TermRef;
+  technologyRefs: TermRef[];
   role?: string;
   status?: string;
   platform?: string;
@@ -62,9 +65,13 @@ export interface ProjectPost {
   year?: string;
   liveUrl?: string;
   sourceUrl?: string;
+  /** Cover image URL: one of the project's photos (/projects/<slug>/<name>?v=…) or an external URL. */
   image?: string;
   content: string;
+  /** Markdown body (llms-full.txt), with local image paths made absolute. */
   markdown: string;
+  /** File names of the local photos the project shows (body and cover), at /projects/<slug>/<name>. */
+  images: string[];
   launchDate?: string;
   updated?: string;
 }
