@@ -31,8 +31,8 @@ export type Action =
 export interface DocumentRef {
   createdBy: string | null;
   state: "draft" | "published";
-  /** Set once a post or project has ever been published (talks don't have one). */
-  publishedRevisionId?: string | null;
+  /** Set the first time it's published and never cleared, even by unpublishing. */
+  firstPublishedAt: Date | null;
 }
 
 const ROLE_ACTIONS: Record<Role, ReadonlySet<Action>> = {
@@ -52,7 +52,7 @@ export function can(actor: Actor, action: Action, doc?: DocumentRef): boolean {
       doc !== undefined &&
       doc.createdBy === actor.id &&
       doc.state === "draft" &&
-      !doc.publishedRevisionId
+      !doc.firstPublishedAt
     );
   }
   return true;

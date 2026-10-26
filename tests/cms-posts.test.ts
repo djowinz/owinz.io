@@ -98,6 +98,7 @@ describe("saving drafts", () => {
   it("refuses to overwrite someone else's newer save", async () => {
     const created = await createPost(db, writer, "Draft");
     const opened = created.updatedAt;
+    await new Promise((r) => setTimeout(r, 5)); // saves are told apart by updated_at; not the same millisecond
     await savePost(db, editor, created.id, ready({ title: "Editor's change" }), opened);
     await expect(savePost(db, writer, created.id, ready({ title: "Writer's change" }), opened)).rejects.toBeInstanceOf(
       ConflictError,
@@ -129,6 +130,20 @@ describe("roles in the editor", () => {
     const fresh = (await getPostForEdit(db, writer, mine.id)).post;
     await expect(savePost(db, contributor, mine.id, ready({ title: "x" }), fresh.updatedAt)).rejects.toThrow("Not allowed");
     expect((await listPosts(db, contributor)).find((p) => p.id === mine.id)?.canEdit).toBe(false);
+  });
+
+  it("unpublishing doesn't hand the post back to its contributor", async () => {
+    const mine = await edited(contributor);
+    await publish(db, writer, mine.id);
+    const first = (await getPostForEdit(db, writer, mine.id)).post.firstPublishedAt;
+    expect(first).toBeInstanceOf(Date);
+    await unpublish(db, writer, mine.id);
+    const after = await getPostForEdit(db, contributor, mine.id);
+    expect(after.post.firstPublishedAt).toEqual(first);
+    expect(after.permissions.edit).toBe(false);
+    await expect(savePost(db, contributor, mine.id, ready({ title: "x" }), after.post.updatedAt)).rejects.toThrow("Not allowed");
+    await publish(db, writer, mine.id); // republishing keeps the first date
+    expect((await getPostForEdit(db, writer, mine.id)).post.firstPublishedAt).toEqual(first);
   });
 
   it("writers publish and unpublish; only editors delete", async () => {

@@ -5,10 +5,10 @@ const editor: Actor = { id: "e", role: "editor" };
 const writer: Actor = { id: "w", role: "writer" };
 const contributor: Actor = { id: "c", role: "contributor" };
 
-const ownDraft: DocumentRef = { createdBy: "c", state: "draft", publishedRevisionId: null };
-const othersDraft: DocumentRef = { createdBy: "w", state: "draft", publishedRevisionId: null };
-const live: DocumentRef = { createdBy: "c", state: "published", publishedRevisionId: "r1" };
-const unpublished: DocumentRef = { createdBy: "c", state: "draft", publishedRevisionId: "r1" };
+const ownDraft: DocumentRef = { createdBy: "c", state: "draft", firstPublishedAt: null };
+const othersDraft: DocumentRef = { createdBy: "w", state: "draft", firstPublishedAt: null };
+const live: DocumentRef = { createdBy: "c", state: "published", firstPublishedAt: new Date("2026-01-01") };
+const unpublished: DocumentRef = { createdBy: "c", state: "draft", firstPublishedAt: new Date("2026-01-01") };
 
 describe("role permissions", () => {
   it.each<[Actor, Action, boolean]>([

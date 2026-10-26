@@ -124,6 +124,7 @@ describe("creating and saving drafts", () => {
   it("refuses to overwrite someone else's newer save", async () => {
     const created = await createProject(db, writer, "Draft");
     const opened = created.updatedAt;
+    await new Promise((r) => setTimeout(r, 5)); // saves are told apart by updated_at; not the same millisecond
     await saveProject(db, editor, created.id, ready({ title: "Editor's change" }), opened);
     await expect(saveProject(db, writer, created.id, ready({ title: "Writer's" }), opened)).rejects.toBeInstanceOf(
       ProjectConflictError,
@@ -167,6 +168,20 @@ describe("roles", () => {
     const fresh = (await getProjectForEdit(db, writer, mine.id)).project;
     await expect(saveProject(db, contributor, mine.id, ready({ title: "x" }), fresh.updatedAt)).rejects.toThrow("Not allowed");
     expect((await listProjects(db, contributor)).find((p) => p.id === mine.id)?.canEdit).toBe(false);
+  });
+
+  it("unpublishing doesn't hand the project back to its contributor", async () => {
+    const mine = await edited(contributor);
+    await publish(db, writer, mine.id);
+    const first = (await getProjectForEdit(db, writer, mine.id)).project.firstPublishedAt;
+    expect(first).toBeInstanceOf(Date);
+    await unpublish(db, writer, mine.id);
+    const after = await getProjectForEdit(db, contributor, mine.id);
+    expect(after.project.firstPublishedAt).toEqual(first);
+    expect(after.permissions.edit).toBe(false);
+    await expect(saveProject(db, contributor, mine.id, ready({ title: "x" }), after.project.updatedAt)).rejects.toThrow(
+      "Not allowed",
+    );
   });
 
   it("writers publish, unpublish, and reorder; only editors delete", async () => {

@@ -193,6 +193,7 @@ describe("editing", () => {
 
   it("rejects another person's newer save instead of overwriting it", async () => {
     const talk = await saved(writer);
+    await new Promise((r) => setTimeout(r, 5)); // saves are told apart by updated_at; not the same millisecond
     await saveTalk(db, editor, talk.id, ready({ title: "Editor's title" }), talk.updatedAt, { now: NOW });
     const stale = saveTalk(db, writer, talk.id, ready({ title: "Writer's title" }), talk.updatedAt, { now: NOW });
     await expect(stale).rejects.toBeInstanceOf(TalkConflictError);
@@ -275,6 +276,17 @@ describe("roles", () => {
       ForbiddenError,
     );
     expect((await getTalkForEdit(db, contributor, talk.id)).permissions.edit).toBe(false);
+
+    // Unpublishing doesn't hand it back, and republishing keeps the first date.
+    const first = live.firstPublishedAt;
+    expect(first).toBeInstanceOf(Date);
+    const draft = await unpublishTalk(db, writer, talk.id);
+    expect(draft.firstPublishedAt).toEqual(first);
+    expect((await getTalkForEdit(db, contributor, talk.id)).permissions.edit).toBe(false);
+    await expect(saveTalk(db, contributor, talk.id, ready({ title: "Changed" }), draft.updatedAt, { now: NOW })).rejects.toBeInstanceOf(
+      ForbiddenError,
+    );
+    expect((await publishTalk(db, writer, talk.id, NOW)).firstPublishedAt).toEqual(first);
   });
 
   it("keeps contributors out of other people's talks", async () => {

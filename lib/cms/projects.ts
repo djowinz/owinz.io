@@ -268,7 +268,7 @@ export async function saveProject(
   await checkTerms(db, input);
   const free = await uniqueSlug(db, input.slug, id);
   if (free !== input.slug) {
-    if (!autoSlug || current.publishedRevisionId) {
+    if (!autoSlug || current.firstPublishedAt) {
       throw new ProjectError(`Another project already uses the URL /projects/${input.slug}/.`);
     }
     input.slug = free;

@@ -33,7 +33,7 @@ export default async function EditProjectPage({ params }: { params: Promise<{ id
       updatedAt={project.updatedAt.toISOString()}
       state={project.state}
       publishedSlug={project.publishedSlug}
-      everPublished={Boolean(project.publishedRevisionId)}
+      everPublished={Boolean(project.firstPublishedAt)}
       unpublishedChanges={unpublishedChanges}
       photos={photos.map((p) => ({
         id: p.id,

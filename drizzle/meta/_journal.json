@@ -50,6 +50,13 @@
       "when": 1792971230156,
       "tag": "0006_drop_text_project_taxonomy",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1792978464493,
+      "tag": "0007_first_published",
+      "breakpoints": true
     }
   ]
 }

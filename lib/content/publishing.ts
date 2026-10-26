@@ -1,7 +1,7 @@
 // Publishing posts and projects: the working draft is snapshotted into a
 // "published" revision and the row points the site at it. Callers check
 // permissions (lib/cms/permissions.ts) and refresh cache tags.
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { posts, projects } from "../db/schema";
 import { postSnapshot, projectSnapshot, saveRevision } from "./revisions";
@@ -16,7 +16,13 @@ export async function publishPost(db: Db, postId: string, userId: string | null 
   const { revision } = await saveRevision(db, { postId }, "published", snapshot, userId);
   const [updated] = await db
     .update(posts)
-    .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })
+    .set({
+      state: "published",
+      publishedSlug: row.slug,
+      publishedRevisionId: revision!.id,
+      firstPublishedAt: sql`coalesce(${posts.firstPublishedAt}, now())`,
+      updatedBy: userId,
+    })
     .where(eq(posts.id, postId))
     .returning();
   return updated;
@@ -40,7 +46,13 @@ export async function publishProject(db: Db, projectId: string, userId: string |
   const { revision } = await saveRevision(db, { projectId }, "published", snapshot, userId);
   const [updated] = await db
     .update(projects)
-    .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })
+    .set({
+      state: "published",
+      publishedSlug: row.slug,
+      publishedRevisionId: revision!.id,
+      firstPublishedAt: sql`coalesce(${projects.firstPublishedAt}, now())`,
+      updatedBy: userId,
+    })
     .where(eq(projects.id, projectId))
     .returning();
   return updated;

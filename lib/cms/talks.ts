@@ -4,7 +4,7 @@
 //
 // Talks have no version history: the row is what the site shows, so saving
 // a published talk updates the live page straight away.
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import type { Db } from "../db";
 import { talks, users, type TalkRow } from "../db/schema";
 import { isUpcomingTalk } from "../content/upcoming";
@@ -243,7 +243,7 @@ export async function publishTalk(db: Db, actor: Actor, id: string, now: Date = 
   if (errors.length) throw new TalkError(errors.map((e) => e.message).join(" "));
   const [talk] = await db
     .update(talks)
-    .set({ state: "published", updatedBy: actor.id })
+    .set({ state: "published", firstPublishedAt: sql`coalesce(${talks.firstPublishedAt}, now())`, updatedBy: actor.id })
     .where(eq(talks.id, id))
     .returning();
   return talk;

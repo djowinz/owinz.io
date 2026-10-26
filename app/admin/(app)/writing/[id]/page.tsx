@@ -35,7 +35,7 @@ export default async function EditPostPage({ params }: { params: Promise<{ id: s
       updatedAt={post.updatedAt.toISOString()}
       state={post.state}
       publishedSlug={post.publishedSlug}
-      everPublished={Boolean(post.publishedRevisionId)}
+      everPublished={Boolean(post.firstPublishedAt)}
       unpublishedChanges={unpublishedChanges}
       photos={photos.map((p) => ({
         id: p.id,

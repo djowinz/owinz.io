@@ -50,8 +50,18 @@ const authorship = {
   updatedBy: text("updated_by").references(() => users.id, { onDelete: "set null" }),
 };
 
+/**
+ * When the row was first published. Never cleared, so unpublishing doesn't
+ * hand a contributor back their post (see lib/cms/permissions.ts), and the
+ * URL stops following the title once it has been public.
+ */
+const firstPublished = {
+  firstPublishedAt: timestamp("first_published_at", { withTimezone: true }),
+};
+
 /** Live state of a post or project; see the note at the top of the file. */
 const publication = {
+  ...firstPublished,
   state: publishState("state").notNull().default("draft"),
   /** URL slug while live, fixed at publish so renaming a draft doesn't move the page. */
   publishedSlug: text("published_slug"),
@@ -208,6 +218,7 @@ export const talks = pgTable(
     links: jsonb("links").$type<TalkLink[]>().notNull().default([]),
     /** Talks are small and have no version history: saving a published talk updates it live. */
     state: publishState("state").notNull().default("draft"),
+    ...firstPublished,
     ...authorship,
     ...timestamps,
   },
