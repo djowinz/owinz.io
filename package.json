@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:e2e": "node e2e/run.mjs",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:reset": "docker compose down -v && docker compose up -d --wait && pnpm db:migrate",
@@ -16,6 +17,7 @@
     "db:migrate": "node --env-file-if-exists=.env.local node_modules/drizzle-kit/bin.cjs migrate",
     "content:check": "node scripts/validate-content.mjs",
     "content:import": "tsx --env-file-if-exists=.env.local scripts/import-content.ts",
+    "content:export": "tsx --env-file-if-exists=.env.local scripts/export-content.ts",
     "cms:invite": "tsx --env-file-if-exists=.env.local scripts/cms-invite.ts",
     "seo:audit": "node scripts/seo-audit.mjs"
   },

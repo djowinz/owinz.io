@@ -38,6 +38,23 @@ export function splitPlacement(src: string): { path: string; placement?: Placeme
   return match ? { path: match[1], placement: match[2] as Placement } : { path: src };
 }
 
+/** Tallest a photo may render: keeps portrait shots on one screen. */
+export const MAX_PHOTO_HEIGHT = "min(80vh, 760px)";
+
+/**
+ * Reserves a photo's exact box before it loads (lazy photos would otherwise
+ * collapse and shift the text when they arrive): its aspect ratio, and the
+ * widest it can be without exceeding the column, its own width, or
+ * MAX_PHOTO_HEIGHT. app/globals.css sizes photos without one.
+ */
+export function sizeStyle({ width, height }: { width?: number; height?: number }): { style?: string } {
+  if (!width || !height) return {};
+  const ratio = +(width / height).toFixed(4);
+  return {
+    style: `aspect-ratio:${width}/${height};width:min(100%,${width}px,calc(${MAX_PHOTO_HEIGHT} * ${ratio}));height:auto`,
+  };
+}
+
 function element(
   tagName: string,
   children: Element["children"],
@@ -90,7 +107,7 @@ export function rehypeArticleImages(options: ArticleImageOptions = {}) {
         resolve(name).then((image) => {
           if (!image) return;
           used?.add(name);
-          Object.assign(node.properties, image);
+          Object.assign(node.properties, image, sizeStyle(image));
         }),
       );
     });

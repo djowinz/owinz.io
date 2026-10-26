@@ -11,9 +11,17 @@ const geistSans = Geist({
   subsets: ["latin"],
 });
 
+// Falls back to a system monospace font, not the default metric-scaled
+// Arial: scaled Arial matches lowercase widths only, and its wide capitals
+// wrapped the uppercase mono labels until Geist Mono loaded (a layout
+// shift). Monospace faces all advance ~0.6em like Geist Mono, and the
+// "Geist Mono System" face (app/globals.css) gives them Geist Mono's ascent
+// and descent, so line height doesn't change either.
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  adjustFontFallback: false,
+  fallback: ["Geist Mono System", "Menlo", "Consolas", "DejaVu Sans Mono", "Courier New", "monospace"],
 });
 
 const fraunces = Fraunces({
