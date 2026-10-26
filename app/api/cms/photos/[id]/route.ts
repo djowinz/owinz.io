@@ -4,9 +4,10 @@ import { getDb } from "@/lib/db";
 import { assets } from "@/lib/db/schema";
 import { getCmsUser } from "@/lib/cms/session";
 
-// Any uploaded photo, published or not, for signed-in CMS users (the editor
-// preview and photo tray). The public site serves photos from
-// /writing/<slug>/<photo> instead, and only those the live version shows.
+// Any uploaded photo of a post or project, published or not, for signed-in
+// CMS users (the editor preview and photo tray). The public site serves
+// photos from /writing/<slug>/<photo> and /projects/<slug>/<photo> instead,
+// and only those the live version shows.
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   if (!(await getCmsUser())) return new Response("Not found", { status: 404 });
   const { id } = await params;

@@ -59,7 +59,7 @@ export default async function OverviewPage() {
       />
       <div className="grid gap-14">
         <Collection title="Writing" data={data.writing} href="/admin/writing/" />
-        <Collection title="Projects" data={data.projects} />
+        <Collection title="Projects" data={data.projects} href="/admin/projects/" />
         <Collection title="Talks" data={data.talks} />
       </div>
     </div>

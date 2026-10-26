@@ -9,6 +9,7 @@ import {
   updateTermAction,
   type TermResult,
 } from "@/app/admin/(app)/taxonomy/actions";
+import type { Collection } from "@/lib/content/terms";
 import { cn } from "@/lib/utils";
 import { buttonDanger, buttonPrimary, buttonQuiet, FormError, input, label, SectionTitle } from "./ui";
 
@@ -25,7 +26,40 @@ function usage(t: ManagedTerm) {
   return `${t.live} live · ${t.drafts} draft${t.drafts === 1 ? "" : "s"}`;
 }
 
-export function TaxonomyManager({ categories, tags }: { categories: ManagedTerm[]; tags: ManagedTerm[] }) {
+/** Wording per collection: projects' tags are their technologies. */
+const COPY = {
+  writing: {
+    tags: "Tags",
+    tag: "tag",
+    prefix: "#",
+    items: "posts",
+    categoryPath: "/writing/category",
+    tagPath: "/writing/tag",
+    index: "archive",
+    describe: (name: string) => `Essays on ${name.toLowerCase()}…`,
+  },
+  projects: {
+    tags: "Technologies",
+    tag: "technology",
+    prefix: "",
+    items: "projects",
+    categoryPath: "/projects/category",
+    tagPath: "/projects/technology",
+    index: "/projects page",
+    describe: (name: string) => `Projects in ${name.toLowerCase()}…`,
+  },
+} as const;
+
+export function TaxonomyManager({
+  categories,
+  tags,
+  collection = "writing",
+}: {
+  categories: ManagedTerm[];
+  tags: ManagedTerm[];
+  collection?: Collection;
+}) {
+  const copy = COPY[collection];
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const run = (fn: () => Promise<TermResult>) =>
@@ -38,7 +72,7 @@ export function TaxonomyManager({ categories, tags }: { categories: ManagedTerm[
     const ids = categories.map((c) => c.id);
     const [moved] = ids.splice(index, 1);
     ids.splice(index + by, 0, moved);
-    run(() => reorderCategoriesAction(ids));
+    run(() => reorderCategoriesAction(ids, collection));
   }
 
   return (
@@ -48,8 +82,8 @@ export function TaxonomyManager({ categories, tags }: { categories: ManagedTerm[
       <section>
         <SectionTitle aside={`${categories.length}`}>Categories</SectionTitle>
         <p className="py-3 text-sm text-muted leading-relaxed">
-          Each category with live posts gets a page at /writing/category/&lt;url&gt;/ and a filter on the archive, in
-          this order. The description is that page&apos;s intro and its description in search results.
+          Each category with live {copy.items} gets a page at {copy.categoryPath}/&lt;url&gt;/ and a filter on the{" "}
+          {copy.index}, in this order. The description is that page&apos;s intro and its description in search results.
         </p>
         <ul>
           {categories.map((category, i) => (
@@ -61,30 +95,32 @@ export function TaxonomyManager({ categories, tags }: { categories: ManagedTerm[
               disabled={pending}
               onMove={(by) => move(i, by)}
               run={run}
+              copy={copy}
             />
           ))}
         </ul>
-        <AddTerm kind="category" disabled={pending} run={run} />
+        <AddTerm kind="category" collection={collection} disabled={pending} run={run} />
       </section>
 
       <section>
-        <SectionTitle aside={`${tags.length}`}>Tags</SectionTitle>
+        <SectionTitle aside={`${tags.length}`}>{copy.tags}</SectionTitle>
         <p className="py-3 text-sm text-muted leading-relaxed">
-          Tags link to /writing/tag/&lt;url&gt;/ (kept out of search results). Merge near-duplicates instead of deleting:
-          every post and saved version moves to the tag you keep.
+          {copy.tags} link to {copy.tagPath}/&lt;url&gt;/ (kept out of search results). Merge near-duplicates instead of
+          deleting: every {copy.items.slice(0, -1)} and saved version moves to the {copy.tag} you keep.
         </p>
         <ul>
           {tags.map((tag) => (
-            <TagRow key={tag.id} tag={tag} others={tags.filter((t) => t.id !== tag.id)} disabled={pending} run={run} />
+            <TagRow key={tag.id} tag={tag} others={tags.filter((t) => t.id !== tag.id)} disabled={pending} run={run} copy={copy} />
           ))}
         </ul>
-        <AddTerm kind="tag" disabled={pending} run={run} />
+        <AddTerm kind="tag" collection={collection} placeholder={`New ${copy.tag}`} disabled={pending} run={run} />
       </section>
     </div>
   );
 }
 
 type Run = (fn: () => Promise<TermResult>) => void;
+type Copy = (typeof COPY)[Collection];
 
 function CategoryRow({
   category,
@@ -93,6 +129,7 @@ function CategoryRow({
   disabled,
   onMove,
   run,
+  copy,
 }: {
   category: ManagedTerm;
   first: boolean;
@@ -100,6 +137,7 @@ function CategoryRow({
   disabled: boolean;
   onMove(by: -1 | 1): void;
   run: Run;
+  copy: Copy;
 }) {
   const [name, setName] = useState(category.name);
   const [slug, setSlug] = useState(category.slug);
@@ -139,14 +177,16 @@ function CategoryRow({
           rows={2}
           value={description}
           disabled={disabled}
-          placeholder={`Essays on ${category.name.toLowerCase()}…`}
+          placeholder={copy.describe(category.name)}
           onChange={(e) => setDescription(e.target.value)}
         />
       </label>
       <div className="flex flex-wrap items-center gap-4">
         <span className={label}>{usage(category)}</span>
         {slug !== category.slug && category.live > 0 && (
-          <span className="text-xs text-accent">Links to /writing/category/{category.slug}/ will stop working.</span>
+          <span className="text-xs text-accent">
+            Links to {copy.categoryPath}/{category.slug}/ will stop working.
+          </span>
         )}
         <div className="ml-auto flex items-center gap-4">
           {changed && (
@@ -162,7 +202,7 @@ function CategoryRow({
           <button
             type="button"
             disabled={disabled || used}
-            title={used ? "Move its posts to another category first" : undefined}
+            title={used ? `Move its ${copy.items} to another category first` : undefined}
             className={buttonDanger}
             onClick={() => window.confirm(`Delete “${category.name}”?`) && run(() => deleteTermAction(category.id))}
           >
@@ -174,7 +214,19 @@ function CategoryRow({
   );
 }
 
-function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: ManagedTerm[]; disabled: boolean; run: Run }) {
+function TagRow({
+  tag,
+  others,
+  disabled,
+  run,
+  copy,
+}: {
+  tag: ManagedTerm;
+  others: ManagedTerm[];
+  disabled: boolean;
+  run: Run;
+  copy: Copy;
+}) {
   const [name, setName] = useState(tag.name);
   const [into, setInto] = useState("");
   const used = tag.drafts + tag.live > 0;
@@ -182,7 +234,7 @@ function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: Mana
   return (
     <li className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-edge py-3">
       <input
-        aria-label="Tag name"
+        aria-label={`${copy.tag} name`}
         className={cn(input, "w-auto min-w-[160px] flex-1")}
         value={name}
         disabled={disabled}
@@ -204,7 +256,8 @@ function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: Mana
         <option value="">Merge into…</option>
         {others.map((o) => (
           <option key={o.id} value={o.id}>
-            #{o.name}
+            {copy.prefix}
+            {o.name}
           </option>
         ))}
       </select>
@@ -215,7 +268,7 @@ function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: Mana
           className={buttonQuiet}
           onClick={() => {
             const target = others.find((o) => o.id === into);
-            if (window.confirm(`Merge #${tag.name} into #${target?.name}? This can't be undone.`)) {
+            if (window.confirm(`Merge ${copy.prefix}${tag.name} into ${copy.prefix}${target?.name}? This can't be undone.`)) {
               run(() => mergeTagsAction(tag.id, into));
             }
           }}
@@ -226,9 +279,9 @@ function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: Mana
       <button
         type="button"
         disabled={disabled || used}
-        title={used ? "Merge it into another tag instead" : undefined}
+        title={used ? `Merge it into another ${copy.tag} instead` : undefined}
         className={buttonDanger}
-        onClick={() => window.confirm(`Delete #${tag.name}?`) && run(() => deleteTermAction(tag.id))}
+        onClick={() => window.confirm(`Delete ${copy.prefix}${tag.name}?`) && run(() => deleteTermAction(tag.id))}
       >
         Delete
       </button>
@@ -236,7 +289,19 @@ function TagRow({ tag, others, disabled, run }: { tag: ManagedTerm; others: Mana
   );
 }
 
-function AddTerm({ kind, disabled, run }: { kind: "category" | "tag"; disabled: boolean; run: Run }) {
+function AddTerm({
+  kind,
+  collection,
+  placeholder,
+  disabled,
+  run,
+}: {
+  kind: "category" | "tag";
+  collection: Collection;
+  placeholder?: string;
+  disabled: boolean;
+  run: Run;
+}) {
   const [name, setName] = useState("");
   return (
     <form
@@ -245,7 +310,7 @@ function AddTerm({ kind, disabled, run }: { kind: "category" | "tag"; disabled: 
         e.preventDefault();
         if (!name.trim()) return;
         run(async () => {
-          const result = await createTermAction(kind, name);
+          const result = await createTermAction(kind, name, collection);
           if (result.ok) setName("");
           return result;
         });
@@ -255,7 +320,7 @@ function AddTerm({ kind, disabled, run }: { kind: "category" | "tag"; disabled: 
         className={`${input} flex-1`}
         value={name}
         disabled={disabled}
-        placeholder={kind === "category" ? "New category" : "New tag"}
+        placeholder={placeholder ?? (kind === "category" ? "New category" : "New tag")}
         onChange={(e) => setName(e.target.value)}
       />
       <button type="submit" disabled={disabled || !name.trim()} className={buttonPrimary}>
