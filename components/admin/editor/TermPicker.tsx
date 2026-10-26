@@ -2,6 +2,7 @@
 
 import { useId, useMemo, useState } from "react";
 import { createTermAction } from "@/app/admin/(app)/taxonomy/actions";
+import type { Collection } from "@/lib/content/terms";
 import { cn } from "@/lib/utils";
 import { input as inputClass } from "../ui";
 
@@ -22,12 +23,15 @@ export function CategorySelect({
   onChange,
   onCreated,
   onError,
+  collection = "writing",
 }: {
   id?: string;
   value: string | null;
   options: TermOption[];
   canCreate: boolean;
   disabled?: boolean;
+  /** Which collection new categories belong to. */
+  collection?: Collection;
   onChange(id: string | null): void;
   onCreated(term: TermOption): void;
   onError(message: string): void;
@@ -38,7 +42,7 @@ export function CategorySelect({
     const name = window.prompt("New category name");
     if (!name?.trim()) return;
     setBusy(true);
-    const result = await createTermAction("category", name);
+    const result = await createTermAction("category", name, collection);
     setBusy(false);
     if (!result.ok) return onError(result.error);
     onCreated(result.term);
@@ -73,11 +77,19 @@ export function TagPicker({
   onChange,
   onCreated,
   onError,
+  collection = "writing",
+  placeholder = "Add tags…",
+  prefix = "#",
 }: {
   id?: string;
   value: string[];
   options: TermOption[];
   disabled?: boolean;
+  /** Which collection new tags belong to (projects' tags are its technologies). */
+  collection?: Collection;
+  placeholder?: string;
+  /** Shown before each name, e.g. "#". */
+  prefix?: string;
   onChange(ids: string[]): void;
   onCreated(term: TermOption): void;
   onError(message: string): void;
@@ -102,7 +114,7 @@ export function TagPicker({
       return;
     }
     setBusy(true);
-    const result = await createTermAction("tag", clean);
+    const result = await createTermAction("tag", clean, collection);
     setBusy(false);
     if (!result.ok) return onError(result.error);
     onCreated(result.term);
@@ -123,7 +135,8 @@ export function TagPicker({
           if (!tag) return null;
           return (
             <span key={tagId} className="inline-flex items-center gap-1 bg-accent/10 px-2 py-0.5 font-mono text-[11px] text-accent">
-              #{tag.name}
+              {prefix}
+              {tag.name}
               {!disabled && (
                 <button
                   type="button"
@@ -144,7 +157,7 @@ export function TagPicker({
           role="combobox"
           aria-expanded={open && suggestions.length > 0}
           aria-controls={listId}
-          placeholder={value.length ? "" : "Add tags…"}
+          placeholder={value.length ? "" : placeholder}
           onChange={(e) => {
             const next = e.target.value;
             if (next.endsWith(",")) void add(next.slice(0, -1));
@@ -173,7 +186,8 @@ export function TagPicker({
                 onClick={() => void add(o.name)}
                 className="block w-full px-3 py-2 text-left text-sm hover:bg-accent/10"
               >
-                #{o.name}
+                {prefix}
+                {o.name}
               </button>
             </li>
           ))}

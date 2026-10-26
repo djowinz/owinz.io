@@ -124,6 +124,77 @@ export async function getProject(slug: string): Promise<ProjectPost | null> {
   return db.publishedProject(getDb(), slug);
 }
 
+/** Where a published project's photo lives in Blob; null if the project doesn't show it. */
+export async function getProjectPhoto(
+  slug: string,
+  name: string,
+): Promise<{ blobPathname: string; contentType: string } | null> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(CONTENT_TAGS.projects);
+  const asset = await db.publishedProjectAsset(getDb(), slug, name);
+  return asset && { blobPathname: asset.blobPathname, contentType: asset.contentType };
+}
+
+/**
+ * Project categories (in their CMS order) and technologies (by name) that at
+ * least one live project uses, with counts: the /projects filters and the
+ * category and technology pages.
+ */
+export async function getProjectTaxonomy(): Promise<{ categories: TermSummary[]; technologies: TermSummary[] }> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(CONTENT_TAGS.projects);
+  return projectTaxonomy(await db.publishedProjects(getDb()));
+}
+
+/**
+ * Everything a project category or technology page shows, cached per
+ * (kind, slug) like getWritingListing, for the same reason: a page for a
+ * term created after the build must not resume with the build's data.
+ * `projects` is every live project (numbered in display order); the page
+ * filters them.
+ */
+export async function getProjectListing(
+  kind: "category" | "technology",
+  slug: string,
+): Promise<{ term: TermSummary; projects: ProjectPost[]; categories: TermSummary[]; technologies: TermSummary[] } | null> {
+  "use cache";
+  cacheLife("max");
+  cacheTag(CONTENT_TAGS.projects);
+  const projects = await db.publishedProjects(getDb());
+  const { categories, technologies } = await projectTaxonomy(projects);
+  const term = (kind === "category" ? categories : technologies).find((t) => t.slug === slug);
+  if (!term) return null;
+  return { term, projects, categories, technologies };
+}
+
+async function projectTaxonomy(projects: ProjectPost[]): Promise<{ categories: TermSummary[]; technologies: TermSummary[] }> {
+  const [categories, technologies] = await Promise.all([
+    listTerms(getDb(), "projects", "category"),
+    listTerms(getDb(), "projects", "tag"),
+  ]);
+  const counts = new Map<string, number>();
+  const bump = (key: string) => counts.set(key, (counts.get(key) ?? 0) + 1);
+  for (const project of projects) {
+    if (project.categoryRef) bump(`category:${project.categoryRef.slug}`);
+    for (const tech of project.technologyRefs) bump(`tag:${tech.slug}`);
+  }
+  const summarize = (kind: string) => (t: { name: string; slug: string; description: string }) => ({
+    name: t.name,
+    slug: t.slug,
+    description: t.description,
+    count: counts.get(`${kind}:${t.slug}`) ?? 0,
+  });
+  return {
+    categories: categories.map(summarize("category")).filter((t) => t.count > 0),
+    technologies: technologies
+      .map(summarize("tag"))
+      .filter((t) => t.count > 0)
+      .sort((a, b) => a.name.localeCompare(b.name)),
+  };
+}
+
 /** Talks move from upcoming to past by date, so this also refreshes daily. */
 export async function getTalks(): Promise<{ upcoming: Talk[]; past: Talk[] }> {
   "use cache";

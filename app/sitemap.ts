@@ -1,12 +1,17 @@
 import type { MetadataRoute } from "next";
-import { getProjects, getWritingPosts, getWritingTaxonomy } from "@/lib/content";
+import { getProjects, getProjectTaxonomy, getWritingPosts, getWritingTaxonomy } from "@/lib/content";
 import { absoluteUrl, isoDate } from "@/lib/seo";
 
 // Every indexable page, rebuilt from content whenever it's published; lastmod
-// comes from each post's `updated` (or publish) date. Category pages are
-// listed; tag pages are noindex and left out.
+// comes from each post's `updated` (or publish) date. Category pages (writing
+// and projects) are listed; tag and technology pages are noindex and left out.
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [posts, projects, { categories }] = await Promise.all([getWritingPosts(), getProjects(), getWritingTaxonomy()]);
+  const [posts, projects, { categories }, projectTaxonomy] = await Promise.all([
+    getWritingPosts(),
+    getProjects(),
+    getWritingTaxonomy(),
+    getProjectTaxonomy(),
+  ]);
 
   const postEntries = posts.map((post) => ({
     url: absoluteUrl(`/writing/${post.slug}`),
@@ -29,6 +34,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ),
   }));
   const latestProject = latest(projectEntries);
+  const projectCategoryEntries = projectTaxonomy.categories.map((category) => ({
+    url: absoluteUrl(`/projects/category/${category.slug}`),
+    lastModified: latest(
+      projects
+        .filter((p) => p.categoryRef?.slug === category.slug)
+        .map((p) => ({ lastModified: isoDate(p.updated) ?? isoDate(p.launchDate) })),
+    ),
+  }));
 
   return [
     { url: absoluteUrl("/"), lastModified: latest([...postEntries, ...projectEntries]) },
@@ -36,6 +49,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...categoryEntries,
     ...postEntries,
     { url: absoluteUrl("/projects"), lastModified: latestProject },
+    ...projectCategoryEntries,
     ...projectEntries,
     { url: absoluteUrl("/talks") },
     { url: absoluteUrl("/contact") },

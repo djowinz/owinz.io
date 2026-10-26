@@ -36,6 +36,20 @@
       "when": 1792969194235,
       "tag": "0004_drop_text_taxonomy",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792971193278,
+      "tag": "0005_project_taxonomy",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792971230156,
+      "tag": "0006_drop_text_project_taxonomy",
+      "breakpoints": true
     }
   ]
 }

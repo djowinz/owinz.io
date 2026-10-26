@@ -52,6 +52,17 @@ Categories and tags are records in the database (`terms`), not free text, so a t
 
 `tests/editor-roundtrip.test.ts` round-trips every post and project through the editor and checks the site renders them identically.
 
+### Projects in the CMS
+
+`/admin/projects` lists projects in the order `/projects` shows them, with their status (Live, Draft, Edited); **New project** opens the editor. Projects work like posts: autosaved drafts with conflict detection, publish checks, history, and a URL that follows the title until first published.
+
+- **Fields.** Title, URL, description (the dek and meta description; 70–170 characters reads best), purpose, challenge, role, status, platform, launch date, updated, live and source URLs, category, technologies, and the case study body (the same visual/Markdown editor as writing).
+- **Cover image.** Chosen from the project's own photos (or **Upload cover**), stored by file name and shown in the project page's figure panel. Publishing checks that it's uploaded.
+- **Photos** in the body and the cover are served at `/projects/<slug>/<photo>`, and only the photos the live version shows.
+- **Order.** Editors and writers move projects up and down in the list. The order applies to the site immediately; it isn't versioned, so it never marks a project as edited.
+- **Taxonomy.** Projects have their own categories and tags, shown as "Technologies" (`/admin/taxonomy/?collection=projects`). Each category with live projects has an indexed page at `/projects/category/<slug>/` (in the sitemap); each technology has a `noindex` page at `/projects/technology/<slug>/`. Project pages link both, and `/projects` filters by them. Project URLs `category` and `technology` are reserved.
+- **Roles.** Contributors draft their own projects; writers and editors publish, unpublish, restore, and reorder; only editors delete.
+
 ### Local setup
 
 Everything runs offline: Postgres in Docker, and photos in `.data/blob/` instead of Vercel Blob.

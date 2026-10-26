@@ -130,14 +130,18 @@ export function postSnapshot(row: PostRow, tagIds: readonly string[]): Snapshot 
   return { slug, title, excerpt, categoryId, tagIds: [...tagIds], date, updated, byline, body };
 }
 
-/** The editable fields of a project, as stored in its revisions. */
-export function projectSnapshot(row: ProjectRow): Snapshot {
+/**
+ * The editable fields of a project, as stored in its revisions. Like posts,
+ * the category and technologies are stored by id. The display order
+ * (sortOrder) isn't versioned: reordering /projects applies at once.
+ */
+export function projectSnapshot(row: ProjectRow, technologyIds: readonly string[]): Snapshot {
   const {
-    slug, title, description, purpose, challenge, technologies, category, role,
-    projectStatus, platform, sortOrder, launchDate, updated, liveUrl, sourceUrl, image, body,
+    slug, title, description, purpose, challenge, categoryId, role,
+    projectStatus, platform, launchDate, updated, liveUrl, sourceUrl, image, body,
   } = row;
   return {
-    slug, title, description, purpose, challenge, technologies, category, role,
-    projectStatus, platform, sortOrder, launchDate, updated, liveUrl, sourceUrl, image, body,
+    slug, title, description, purpose, challenge, categoryId, technologyIds: [...technologyIds], role,
+    projectStatus, platform, launchDate, updated, liveUrl, sourceUrl, image, body,
   };
 }

@@ -8,7 +8,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 import { readingTime } from "reading-time-estimator";
 import { normalizeDate, parseDate } from "../dates";
-import { rehypeArticleImages, type ImageResolver } from "../rehype-images";
+import { isLocalImage, rehypeArticleImages, type ImageResolver } from "../rehype-images";
 import { summarize } from "../seo";
 import { SITE } from "../site";
 import type { ProjectPost, RecentPost, RecentProject, Talk, TermRef, WritingPost } from "./types";
@@ -86,8 +86,8 @@ export interface ProjectSource {
   description?: string;
   purpose?: string;
   challenge?: string;
-  technologies?: string[];
-  category?: string | null;
+  technologies?: TermRef[];
+  category?: TermRef | null;
   role?: string | null;
   status?: string | null;
   platform?: string | null;
@@ -96,22 +96,40 @@ export interface ProjectSource {
   updated?: string | null;
   liveUrl?: string | null;
   sourceUrl?: string | null;
+  /** Cover image: a file name of one of the project's photos, or a URL. */
   image?: string | null;
   body: string;
 }
 
-export async function buildProject(source: ProjectSource): Promise<ProjectPost> {
+export async function buildProject(source: ProjectSource, resolve?: ImageResolver): Promise<ProjectPost> {
   const body = source.body.trim();
   const launchDate = normalizeDate(source.launchDate) || undefined;
   const launch = parseDate(launchDate);
+  const used = new Set<string>();
+  const content = await markdownToHtml(body, { resolve, used });
+  // A cover that's one of the project's own photos resolves like a body photo;
+  // a URL or site path is used as is. A missing photo shows no cover.
+  let image: string | undefined;
+  const cover = source.image?.trim();
+  if (cover && isLocalImage(cover)) {
+    const resolved = await resolve?.(cover.replace(/^\.\//, ""));
+    if (resolved) {
+      image = resolved.src;
+      used.add(cover.replace(/^\.\//, ""));
+    }
+  } else if (cover) {
+    image = cover;
+  }
   return {
     slug: source.slug,
     title: source.title || "Untitled",
     description: source.description || summarize(body),
     purpose: source.purpose ?? "",
     challenge: source.challenge ?? "",
-    technologies: source.technologies ?? [],
-    category: source.category || undefined,
+    technologies: (source.technologies ?? []).map((t) => t.name),
+    category: source.category?.name || undefined,
+    categoryRef: source.category ?? undefined,
+    technologyRefs: source.technologies ?? [],
     role: source.role || undefined,
     status: source.status || undefined,
     platform: source.platform || undefined,
@@ -119,9 +137,10 @@ export async function buildProject(source: ProjectSource): Promise<ProjectPost> 
     year: launch ? String(launch.getFullYear()) : undefined,
     liveUrl: source.liveUrl || undefined,
     sourceUrl: source.sourceUrl || undefined,
-    image: source.image || undefined,
-    content: await markdownToHtml(body),
-    markdown: body,
+    image,
+    content,
+    markdown: body.replace(LOCAL_IMAGE, `$1${SITE.url}/projects/${source.slug}/`),
+    images: [...used],
     launchDate,
     updated: normalizeDate(source.updated) || undefined,
   };

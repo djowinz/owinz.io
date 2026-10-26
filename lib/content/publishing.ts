@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import type { Db } from "../db";
 import { posts, projects } from "../db/schema";
 import { postSnapshot, projectSnapshot, saveRevision } from "./revisions";
-import { postTagIds } from "./terms";
+import { postTagIds, projectTagIds } from "./terms";
 
 export class NotFoundError extends Error {}
 
@@ -36,7 +36,8 @@ export async function unpublishPost(db: Db, postId: string, userId: string | nul
 export async function publishProject(db: Db, projectId: string, userId: string | null = null) {
   const [row] = await db.select().from(projects).where(eq(projects.id, projectId));
   if (!row) throw new NotFoundError(`No project ${projectId}`);
-  const { revision } = await saveRevision(db, { projectId }, "published", projectSnapshot(row), userId);
+  const snapshot = projectSnapshot(row, await projectTagIds(db, projectId));
+  const { revision } = await saveRevision(db, { projectId }, "published", snapshot, userId);
   const [updated] = await db
     .update(projects)
     .set({ state: "published", publishedSlug: row.slug, publishedRevisionId: revision!.id, updatedBy: userId })

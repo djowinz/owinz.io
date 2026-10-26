@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { CONTENT_TAGS } from "@/lib/content/tags";
+import type { Collection } from "@/lib/content/terms";
 import { getDb } from "@/lib/db";
 import { ForbiddenError } from "@/lib/cms/permissions";
 import { getCmsUser, UnauthenticatedError } from "@/lib/cms/session";
@@ -29,15 +30,20 @@ async function attempt<T extends object>(fn: (actor: NonNullable<Awaited<ReturnT
   }
 }
 
-/** Term names and slugs appear on live pages (filters, article links, category pages). */
-function refreshSite() {
-  updateTag(CONTENT_TAGS.writing);
+/**
+ * Term names and slugs appear on live pages (filters, article and project
+ * links, category pages): refresh the collection the term belongs to.
+ */
+function refreshSite(collection: Collection = "writing") {
+  updateTag(collection === "projects" ? CONTENT_TAGS.projects : CONTENT_TAGS.writing);
   revalidatePath("/admin/taxonomy");
 }
 
-export async function createTermAction(kind: "category" | "tag", name: string) {
+const collectionOf = (value: unknown): Collection => (value === "projects" ? "projects" : "writing");
+
+export async function createTermAction(kind: "category" | "tag", name: string, collection: Collection = "writing") {
   return attempt(async (actor) => {
-    const term = await createTerm(getDb(), actor, { kind, collection: "writing", name });
+    const term = await createTerm(getDb(), actor, { kind, collection: collectionOf(collection), name });
     revalidatePath("/admin/taxonomy");
     return { term: { id: term.id, name: term.name, slug: term.slug } };
   });
@@ -46,7 +52,7 @@ export async function createTermAction(kind: "category" | "tag", name: string) {
 export async function updateTermAction(id: string, patch: { name?: string; slug?: string; description?: string }) {
   return attempt(async (actor) => {
     const term = await updateTerm(getDb(), actor, id, patch);
-    refreshSite();
+    refreshSite(term.collection);
     return { term: { id: term.id, name: term.name, slug: term.slug, description: term.description } };
   });
 }
@@ -61,16 +67,16 @@ export async function deleteTermAction(id: string) {
 
 export async function mergeTagsAction(fromId: string, intoId: string) {
   return attempt(async (actor) => {
-    await mergeTags(getDb(), actor, fromId, intoId);
-    refreshSite();
+    const collection = await mergeTags(getDb(), actor, fromId, intoId);
+    refreshSite(collection);
     return {};
   });
 }
 
-export async function reorderCategoriesAction(ids: string[]) {
+export async function reorderCategoriesAction(ids: string[], collection: Collection = "writing") {
   return attempt(async (actor) => {
-    await reorderCategories(getDb(), actor, "writing", ids);
-    refreshSite();
+    await reorderCategories(getDb(), actor, collectionOf(collection), ids);
+    refreshSite(collectionOf(collection));
     return {};
   });
 }

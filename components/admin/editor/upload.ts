@@ -36,10 +36,11 @@ async function shrink(file: File): Promise<{ blob: Blob; name: string }> {
   return { blob, name: `${base}.${png ? "png" : "jpg"}` };
 }
 
-export async function uploadPhoto(postId: string, file: File): Promise<EditorPhoto> {
+/** Uploads a photo to a post, or to a project with `owner: "project"`. */
+export async function uploadPhoto(ownerId: string, file: File, owner: "post" | "project" = "post"): Promise<EditorPhoto> {
   const { blob, name } = await shrink(file);
   const form = new FormData();
-  form.set("postId", postId);
+  form.set(owner === "project" ? "projectId" : "postId", ownerId);
   form.set("name", name);
   form.set("file", blob, name);
   const res = await fetch("/api/cms/photos/", { method: "POST", body: form });

@@ -3,7 +3,7 @@
 //
 //   editor       everything, including deleting content and managing users
 //   writer       create and edit anything, publish, unpublish, restore versions,
-//                manage categories and tags
+//                manage categories and tags, reorder projects
 //   contributor  create content (and new tags) and edit their own until it's
 //                first published; can't publish, unpublish, restore, delete, or
 //                change existing categories and tags
@@ -24,6 +24,7 @@ export type Action =
   | "restore"
   | "delete"
   | "manageTaxonomy"
+  | "reorder"
   | "manageUsers";
 
 /** The parts of a post, project, or talk that permissions depend on. */
@@ -35,8 +36,8 @@ export interface DocumentRef {
 }
 
 const ROLE_ACTIONS: Record<Role, ReadonlySet<Action>> = {
-  editor: new Set(["create", "edit", "publish", "unpublish", "restore", "delete", "manageTaxonomy", "manageUsers"]),
-  writer: new Set(["create", "edit", "publish", "unpublish", "restore", "manageTaxonomy"]),
+  editor: new Set(["create", "edit", "publish", "unpublish", "restore", "delete", "manageTaxonomy", "reorder", "manageUsers"]),
+  writer: new Set(["create", "edit", "publish", "unpublish", "restore", "manageTaxonomy", "reorder"]),
   contributor: new Set(["create", "edit"]),
 };
 
