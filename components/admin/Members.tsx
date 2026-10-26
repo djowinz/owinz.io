@@ -10,23 +10,19 @@ import {
 } from "@/app/admin/(app)/users/actions";
 import { ROLES } from "@/lib/cms/permissions";
 import { cn } from "@/lib/utils";
+import { Select } from "./Select";
 import { buttonDanger, buttonPrimary, FormError, input } from "./ui";
 
-const select = cn(input, "w-auto pr-8");
+const roleOptions = ROLES.map((role) => ({ value: role, label: role[0].toUpperCase() + role.slice(1) }));
 
 export function InviteForm() {
   const [state, action, pending] = useActionState<ActionResult, FormData>(inviteAction, {});
+  const [role, setRole] = useState("contributor");
   return (
     <form action={action}>
       <div className="flex flex-wrap gap-2">
         <input name="email" type="email" required placeholder="name@example.com" className={cn(input, "w-auto flex-1 min-w-[220px]")} />
-        <select name="role" defaultValue="contributor" className={select} aria-label="Role">
-          {ROLES.map((role) => (
-            <option key={role} value={role}>
-              {role[0].toUpperCase() + role.slice(1)}
-            </option>
-          ))}
-        </select>
+        <Select name="role" value={role} options={roleOptions} onChange={setRole} aria-label="Role" className="w-40" />
         <button type="submit" disabled={pending} className={buttonPrimary}>
           Invite
         </button>
@@ -39,6 +35,7 @@ export function InviteForm() {
 export function MemberControls({ userId, role, isSelf }: { userId: string; role: string; isSelf: boolean }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [current, setCurrent] = useState(role);
   const run = (fn: () => Promise<ActionResult>) =>
     start(async () => {
       const result = await fn();
@@ -48,19 +45,17 @@ export function MemberControls({ userId, role, isSelf }: { userId: string; role:
   return (
     <div className="flex flex-col items-end">
       <div className="flex items-center gap-4">
-        <select
-          defaultValue={role}
+        <Select
+          value={current}
+          options={roleOptions}
           disabled={pending}
           aria-label="Role"
-          className={select}
-          onChange={(e) => run(() => changeRoleAction(userId, e.target.value))}
-        >
-          {ROLES.map((r) => (
-            <option key={r} value={r}>
-              {r[0].toUpperCase() + r.slice(1)}
-            </option>
-          ))}
-        </select>
+          className="w-40"
+          onChange={(next) => {
+            setCurrent(next);
+            run(() => changeRoleAction(userId, next));
+          }}
+        />
         {!isSelf && (
           <button
             type="button"

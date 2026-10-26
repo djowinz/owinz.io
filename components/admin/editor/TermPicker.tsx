@@ -4,7 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { createTermAction } from "@/app/admin/(app)/taxonomy/actions";
 import type { Collection } from "@/lib/content/terms";
 import { cn } from "@/lib/utils";
-import { input as inputClass } from "../ui";
+import { Select } from "../Select";
 
 export interface TermOption {
   id: string;
@@ -50,21 +50,17 @@ export function CategorySelect({
   }
 
   return (
-    <select
+    <Select
       id={id}
       value={value ?? ""}
       disabled={disabled || busy}
-      onChange={(e) => (e.target.value === NEW ? void create() : onChange(e.target.value || null))}
-      className={inputClass}
-    >
-      <option value="">No category</option>
-      {options.map((o) => (
-        <option key={o.id} value={o.id}>
-          {o.name}
-        </option>
-      ))}
-      {canCreate && <option value={NEW}>＋ New category…</option>}
-    </select>
+      onChange={(next) => (next === NEW ? void create() : onChange(next || null))}
+      options={[
+        { value: "", label: "No category" },
+        ...options.map((o) => ({ value: o.id, label: o.name })),
+        ...(canCreate ? [{ value: NEW, label: <span className="text-accent">＋ New category…</span>, text: "new category" }] : []),
+      ]}
+    />
   );
 }
 

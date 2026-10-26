@@ -11,6 +11,7 @@ import {
 } from "@/app/admin/(app)/taxonomy/actions";
 import type { Collection } from "@/lib/content/terms";
 import { cn } from "@/lib/utils";
+import { Select } from "./Select";
 import { buttonDanger, buttonPrimary, buttonQuiet, FormError, input, label, SectionTitle } from "./ui";
 
 export interface ManagedTerm {
@@ -246,21 +247,17 @@ function TagRow({
           Rename
         </button>
       )}
-      <select
+      <Select
         aria-label="Merge into"
-        className={cn(input, "w-44 shrink-0")}
+        className="w-44 shrink-0"
         value={into}
         disabled={disabled || others.length === 0}
-        onChange={(e) => setInto(e.target.value)}
-      >
-        <option value="">Merge into…</option>
-        {others.map((o) => (
-          <option key={o.id} value={o.id}>
-            {copy.prefix}
-            {o.name}
-          </option>
-        ))}
-      </select>
+        onChange={setInto}
+        options={[
+          { value: "", label: "Merge into…" },
+          ...others.map((o) => ({ value: o.id, label: `${copy.prefix}${o.name}` })),
+        ]}
+      />
       {into && (
         <button
           type="button"

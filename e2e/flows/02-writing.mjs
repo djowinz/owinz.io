@@ -79,7 +79,8 @@ export const flows = [
     name: "pick a category and add new tags",
     async run(ctx) {
       const page = await editor(ctx);
-      await page.locator("#category").selectOption({ label: "Engineering" });
+      await page.locator("#category").click(); // the custom listbox (components/admin/Select.tsx)
+      await page.getByRole("option", { name: "Engineering", exact: true }).click();
       const tags = page.locator("#tags");
       await tags.fill(tagA);
       await tags.press("Enter");
