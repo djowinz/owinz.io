@@ -3,8 +3,23 @@
 // routes to ROUTES.
 import { assert, get, unique } from "../lib.mjs";
 
-const ROUTES = ["/writing/{}/", "/writing/category/{}/", "/writing/tag/{}/"];
-const KNOWN = ["/writing/art-of-debugging/", "/writing/category/engineering/", "/writing/", "/"];
+const ROUTES = [
+  "/writing/{}/",
+  "/writing/category/{}/",
+  "/writing/tag/{}/",
+  "/projects/{}/",
+  "/projects/category/{}/",
+  "/projects/technology/{}/",
+];
+const KNOWN = [
+  "/writing/art-of-debugging/",
+  "/writing/category/engineering/",
+  "/writing/",
+  "/projects/chronicle/",
+  "/projects/category/personal-finance/",
+  "/projects/",
+  "/",
+];
 
 export const flows = [
   {
