@@ -130,12 +130,16 @@ export function projectSchema(project: ProjectPost): Thing {
   };
 }
 
-export function projectListSchema(projects: ProjectPost[]): Thing {
+/** /projects, or a filtered listing of it (a project category page). */
+export function projectListSchema(
+  projects: ProjectPost[],
+  page: { path: string; name: string } = { path: "/projects", name: "Projects" },
+): Thing {
   return {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    url: absoluteUrl("/projects"),
-    name: `Projects — ${SITE.name}`,
+    url: absoluteUrl(page.path),
+    name: `${page.name} — ${SITE.name}`,
     isPartOf: { "@id": WEBSITE_ID },
     mainEntity: {
       "@type": "ItemList",

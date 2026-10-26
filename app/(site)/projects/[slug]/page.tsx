@@ -11,6 +11,13 @@ interface ProjectPageProps {
   params: Promise<{ slug: string }>;
 }
 
+// Prerendered per slug: an unknown slug is rendered (and cached) as a real
+// 404 before any HTML is sent, rather than streaming a fallback shell with a
+// 200. Every read goes through a `use cache` getter; navigation stays fast
+// because each slug's page is static.
+export const ensureStatic = "navigation";
+export const instant = false;
+
 export async function generateStaticParams() {
   const projects = await getProjects();
   return withPlaceholder(projects.map((project) => ({ slug: project.slug })));
@@ -33,6 +40,8 @@ export async function generateMetadata({ params }: ProjectPageProps) {
   });
 }
 
+const linkClass = "cursor-none transition-colors hover:text-accent";
+
 export default async function ProjectPage({ params }: ProjectPageProps) {
   const { slug } = await params;
   const projects = await getProjects();
@@ -50,9 +59,18 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
     ["Platform", project.platform],
   ].filter(([, value]) => Boolean(value)) as [string, string][];
 
-  const metaParts = [`№ ${num}`, project.year, project.category].filter(
-    Boolean,
-  ) as string[];
+  const metaParts = [
+    { key: "num", node: `№ ${num}` },
+    project.year && { key: "year", node: project.year },
+    project.categoryRef && {
+      key: "category",
+      node: (
+        <Link href={`/projects/category/${project.categoryRef.slug}`} className={linkClass}>
+          {project.categoryRef.name}
+        </Link>
+      ),
+    },
+  ].filter(Boolean) as { key: string; node: React.ReactNode }[];
 
   return (
     <article className="max-w-[720px] mx-auto">
@@ -78,9 +96,9 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       {/* Meta row */}
       <div className="flex flex-wrap gap-x-4 sm:gap-x-6 gap-y-2 font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-7">
         {metaParts.map((part, i) => (
-          <span key={part} className="flex gap-4 sm:gap-6">
+          <span key={part.key} className="flex gap-4 sm:gap-6">
             {i > 0 && <span>/</span>}
-            <span>{part}</span>
+            <span>{part.node}</span>
           </span>
         ))}
       </div>
@@ -137,7 +155,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       )}
 
       {/* Factsheet */}
-      {(facts.length > 0 || project.technologies.length > 0) && (
+      {(facts.length > 0 || project.technologyRefs.length > 0) && (
         <div className="grid grid-cols-2 gap-x-6 sm:gap-x-12 gap-y-8 border-y border-edge py-8 mb-12 sm:mb-16">
           {facts.map(([key, value]) => (
             <div key={key}>
@@ -147,19 +165,20 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
               <div className="text-[15px]">{value}</div>
             </div>
           ))}
-          {project.technologies.length > 0 && (
+          {project.technologyRefs.length > 0 && (
             <div className="col-span-full">
               <div className="font-mono font-medium uppercase text-muted text-[10px] tracking-[1.4px] mb-2.5">
                 Stack
               </div>
               <div className="flex flex-wrap gap-x-4.5 gap-y-1.5">
-                {project.technologies.map((tech) => (
-                  <span
-                    key={tech}
-                    className="font-mono text-[11px] tracking-[0.4px]"
+                {project.technologyRefs.map((tech) => (
+                  <Link
+                    key={tech.slug}
+                    href={`/projects/technology/${tech.slug}`}
+                    className={`font-mono text-[11px] tracking-[0.4px] ${linkClass}`}
                   >
-                    {tech}
-                  </span>
+                    {tech.name}
+                  </Link>
                 ))}
               </div>
             </div>
