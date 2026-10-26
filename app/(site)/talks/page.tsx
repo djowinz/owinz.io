@@ -1,4 +1,6 @@
-import { getTalks } from "@/lib/content";
+import { format } from "date-fns";
+import { getTalks, type Talk } from "@/lib/content";
+import { parseDate } from "@/lib/dates";
 import { SITE } from "@/lib/site";
 import { JsonLd } from "@/components/JsonLd";
 import { talkSchemas } from "@/lib/schema";
@@ -18,6 +20,30 @@ const TOPICS = [
   "Designing for calm, not engagement",
   "Being a one-person design/eng team",
 ];
+
+/** "2026-11-12" → "Nov 12, 2026", in a <time> machines can read. */
+function TalkDate({ date }: { date: string }) {
+  const day = parseDate(date);
+  return day ? <time dateTime={date}>{format(day, "MMM d, yyyy")}</time> : <>{date}</>;
+}
+
+function TalkLinks({ links, className }: { links: Talk["links"]; className?: string }) {
+  if (!links.length) return null;
+  return (
+    <div className={`flex flex-wrap gap-2.5 ${className ?? ""}`}>
+      {links.map((link, i) => (
+        <a
+          key={`${i}-${link.url}`}
+          href={link.url}
+          rel="noopener"
+          className="font-mono uppercase text-[10px] tracking-[1px] border border-edge px-2.5 py-1.5 cursor-none transition-colors hover:border-foreground"
+        >
+          {link.label} ↗
+        </a>
+      ))}
+    </div>
+  );
+}
 
 export default async function Talks() {
   const { upcoming, past } = await getTalks();
@@ -58,11 +84,12 @@ export default async function Talks() {
             {upcoming.map((talk) => (
               <article
                 key={talk.slug}
-                className="grid grid-cols-[1fr_auto] gap-4 px-5 py-6 sm:px-8 sm:py-7 md:grid-cols-[200px_1fr_auto] md:gap-8 bg-(--sidebar) border border-edge items-start"
+                id={talk.slug}
+                className="scroll-mt-8 grid grid-cols-[1fr_auto] gap-4 px-5 py-6 sm:px-8 sm:py-7 md:grid-cols-[200px_1fr_auto] md:gap-8 bg-(--sidebar) border border-edge items-start"
               >
                 <div>
                   <div className="font-mono uppercase text-accent text-[11px] tracking-[0.9px] mb-2.5">
-                    {talk.date}
+                    <TalkDate date={talk.date} />
                   </div>
                   {talk.format && (
                     <div className="font-mono uppercase text-muted text-[10px] tracking-[1.2px]">
@@ -79,6 +106,7 @@ export default async function Talks() {
                       {talk.venue}
                     </div>
                   )}
+                  <TalkLinks links={talk.links} className="mt-4" />
                 </div>
                 {talk.status && (
                   <div className="font-mono uppercase text-muted text-[10px] tracking-[1.2px] border border-edge px-2.5 py-1 bg-background">
@@ -125,10 +153,11 @@ export default async function Talks() {
           {past.map((talk) => (
             <article
               key={talk.slug}
-              className="grid grid-cols-1 gap-3 sm:grid-cols-[120px_1fr_200px] sm:gap-6 py-6 border-b border-edge items-baseline"
+              id={talk.slug}
+              className="scroll-mt-8 grid grid-cols-1 gap-3 sm:grid-cols-[120px_1fr_200px] sm:gap-6 py-6 border-b border-edge items-baseline"
             >
               <div className="font-mono text-muted text-[11px] tracking-[0.7px]">
-                {talk.date}
+                <TalkDate date={talk.date} />
               </div>
               <div>
                 <h3 className="font-fraunces text-[22px] tracking-[-0.33px] leading-tight mb-1.5">
@@ -138,17 +167,7 @@ export default async function Talks() {
                   <div className="text-[13px] text-muted">{talk.venue}</div>
                 )}
               </div>
-              <div className="flex flex-wrap gap-2.5 sm:justify-end">
-                {talk.links.map((link) => (
-                  <a
-                    key={link.label}
-                    href={link.url}
-                    className="font-mono uppercase text-[10px] tracking-[1px] border border-edge px-2.5 py-1.5 cursor-none transition-colors hover:border-foreground"
-                  >
-                    {link.label} ↗
-                  </a>
-                ))}
-              </div>
+              <TalkLinks links={talk.links} className="sm:justify-end" />
             </article>
           ))}
         </section>

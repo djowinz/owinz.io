@@ -14,6 +14,7 @@ export async function AdminRail() {
     { href: "/admin/", label: "Overview" },
     { href: "/admin/writing/", label: "Writing" },
     { href: "/admin/projects/", label: "Projects" },
+    { href: "/admin/talks/", label: "Talks" },
     ...(can(user, "manageTaxonomy") ? [{ href: "/admin/taxonomy/", label: "Categories & tags" }] : []),
     ...(can(user, "manageUsers") ? [{ href: "/admin/users/", label: "People" }] : []),
   ];
