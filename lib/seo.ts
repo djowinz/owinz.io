@@ -22,7 +22,9 @@ export function isoDate(raw: string | undefined): string | undefined {
 /** Plain-text summary of a markdown body, for posts without an excerpt. */
 export function summarize(markdown: string, max = 160): string {
   const paragraph =
+    // Fences go first: a chart's `---` and CSV are separated by blank lines.
     markdown
+      .replace(/```[\s\S]*?```/g, "")
       .split(/\n\s*\n/)
       .map((block) => block.trim())
       // Skip headings, lists, quotes, code, tables, and images.

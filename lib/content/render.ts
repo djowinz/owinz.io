@@ -8,6 +8,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeStringify from "rehype-stringify";
 import { readingTime } from "reading-time-estimator";
 import { normalizeDate, parseDate } from "../dates";
+import { rehypeCharts } from "../charts/rehype-charts";
 import { isLocalImage, rehypeArticleImages, type ImageResolver } from "../rehype-images";
 import { summarize } from "../seo";
 import { SITE } from "../site";
@@ -25,6 +26,7 @@ export async function markdownToHtml(
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeArticleImages, options)
+    .use(rehypeCharts)
     .use(rehypeHighlight)
     .use(rehypeStringify)
     .process(markdown);

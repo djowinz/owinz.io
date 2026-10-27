@@ -48,6 +48,11 @@ describe("summarize", () => {
     expect(summary.length).toBeLessThanOrEqual(40);
     expect(summary).toMatch(/word…$/);
   });
+
+  it("skips fenced code blocks, even ones with blank lines inside", () => {
+    const md = "```chart\ntype: bar\n\n---\nq,v\nQ1,1\n```\n\nReal opening paragraph.";
+    expect(summarize(md)).toBe("Real opening paragraph.");
+  });
 });
 
 describe("pageMetadata", () => {
