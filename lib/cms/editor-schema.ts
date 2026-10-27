@@ -1,7 +1,8 @@
 // The rich-text editor's document model, shared by the browser editor and
 // the round-trip tests. Every node here reads and writes Markdown, which
 // stays the stored format: what the editor saves is what the site renders.
-import type { AnyExtension } from "@tiptap/core";
+import type { AnyExtension, JSONContent, NodeViewRenderer } from "@tiptap/core";
+import CodeBlock from "@tiptap/extension-code-block";
 import Image from "@tiptap/extension-image";
 import { BulletList, OrderedList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
@@ -10,6 +11,13 @@ import StarterKit from "@tiptap/starter-kit";
 export interface EditorSchemaOptions {
   /** Maps an image's Markdown src (e.g. "harbor.jpg#right") to a URL the editor can display. */
   displaySrc?: (src: string) => string;
+  /** Draws code blocks in the browser editor (chart blocks as charts). Omitted in tests. */
+  codeBlockView?: NodeViewRenderer;
+}
+
+/** A chart block: an ordinary code block with language "chart", saved as a ```chart fence. */
+export function chartNode(source: string): JSONContent {
+  return { type: "codeBlock", attrs: { language: "chart" }, content: [{ type: "text", text: source }] };
 }
 
 /**
@@ -67,8 +75,11 @@ export function editorExtensions(options: EditorSchemaOptions = {}): AnyExtensio
       underline: false,
       bulletList: false,
       orderedList: false,
+      // Re-added below, so the browser editor can give it a node view.
+      codeBlock: false,
       link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
     }),
+    CodeBlock.extend({ addNodeView: options.codeBlockView ? () => options.codeBlockView! : undefined }),
     keepLooseness(BulletList),
     keepLooseness(OrderedList),
     articleImage(options),

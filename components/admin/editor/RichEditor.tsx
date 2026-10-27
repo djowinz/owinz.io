@@ -4,15 +4,20 @@ import { Markdown } from "@tiptap/markdown";
 import { Placeholder } from "@tiptap/extensions";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
-import { editorExtensions } from "@/lib/cms/editor-schema";
+import { chartNode, editorExtensions } from "@/lib/cms/editor-schema";
 import { cn } from "@/lib/utils";
 import { input as inputClass, label } from "../ui";
+import { chartNodeView } from "./chart-node-view";
 import { photoSrc, type EditorPhoto } from "./upload";
 
 export type Placement = "" | "left" | "right";
 
 export interface BodyEditorHandle {
   insertImage(name: string, placement: Placement): void;
+  /** Inserts a ```chart block with this source at the selection. */
+  insertChart(source: string): void;
+  /** Replaces the chart block at `pos` (from onEditChart) with this source. */
+  replaceChart(pos: number, source: string): void;
   focus(): void;
 }
 
@@ -22,6 +27,10 @@ interface Props {
   disabled?: boolean;
   photos: EditorPhoto[];
   onFiles?(files: File[]): Promise<void>;
+  /** A chart block's Edit button: its document position and current source. */
+  onEditChart?(pos: number, source: string): void;
+  /** The toolbar's Chart button. */
+  onAddChart?(): void;
 }
 
 const placementOf = (src: string): Placement => (src.match(/#(left|right)$/)?.[1] as Placement) ?? "";
@@ -30,20 +39,22 @@ const withPlacement = (src: string, placement: Placement) =>
 
 /** WYSIWYG editing that reads and writes Markdown (lib/cms/editor-schema.ts). */
 export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEditor(
-  { value, onChange, disabled, photos, onFiles },
+  { value, onChange, disabled, photos, onFiles, onEditChart, onAddChart },
   ref,
 ) {
   const photosRef = useRef(photos);
   const onFilesRef = useRef(onFiles);
+  const onEditChartRef = useRef(onEditChart);
   useEffect(() => {
     photosRef.current = photos;
     onFilesRef.current = onFiles;
-  }, [photos, onFiles]);
+    onEditChartRef.current = onEditChart;
+  }, [photos, onFiles, onEditChart]);
   // The Markdown this editor last produced, to tell our own updates from outside ones (a restore).
   const emitted = useRef(value);
 
-  // Built once. displaySrc reads the latest photos through the ref when
-  // TipTap draws an image node — later, not during React's render.
+  // Built once. displaySrc and the chart Edit button read the latest props
+  // through refs when TipTap draws or clicks a node — later, not during React's render.
   // eslint-disable-next-line react-hooks/refs
   const [extensions] = useState(() => [
     ...editorExtensions({
@@ -52,6 +63,7 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
         const photo = photosRef.current.find((p) => p.name === name);
         return photo ? photoSrc(photo) : src;
       },
+      codeBlockView: chartNodeView((pos, source) => onEditChartRef.current?.(pos, source)),
     }),
     Markdown,
     Placeholder.configure({ placeholder: "Start writing… drop photos anywhere." }),
@@ -102,12 +114,24 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
         .setImage({ src: withPlacement(name, placement), alt: "" })
         .run();
     },
+    insertChart(source) {
+      editor?.chain().focus().insertContent(chartNode(source)).run();
+    },
+    replaceChart(pos, source) {
+      const node = editor?.state.doc.nodeAt(pos);
+      if (!editor || node?.type.name !== "codeBlock") return;
+      editor
+        .chain()
+        .focus()
+        .insertContentAt({ from: pos, to: pos + node.nodeSize }, chartNode(source))
+        .run();
+    },
     focus: () => editor?.commands.focus(),
   }));
 
   return (
     <div className="border border-edge">
-      {editor && <Toolbar editor={editor} disabled={disabled} />}
+      {editor && <Toolbar editor={editor} disabled={disabled} onAddChart={onAddChart} />}
       {editor && <ImagePanel editor={editor} />}
       <div className="px-4 py-3">
         <EditorContent editor={editor} />
@@ -116,7 +140,7 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
   );
 });
 
-function Toolbar({ editor, disabled }: { editor: Editor; disabled?: boolean }) {
+function Toolbar({ editor, disabled, onAddChart }: { editor: Editor; disabled?: boolean; onAddChart?(): void }) {
   const state = useEditorState({
     editor,
     selector: ({ editor: e }) => ({
@@ -156,6 +180,7 @@ function Toolbar({ editor, disabled }: { editor: Editor; disabled?: boolean }) {
     { label: "1. List", title: "Numbered list", active: state.ordered, run: () => editor.chain().focus().toggleOrderedList().run() },
     { label: "Code", title: "Inline code", active: state.code, run: () => editor.chain().focus().toggleCode().run() },
     { label: "{ }", title: "Code block", active: state.codeBlock, run: () => editor.chain().focus().toggleCodeBlock().run() },
+    { label: "Chart", title: "Insert chart", run: () => onAddChart?.(), enabled: Boolean(onAddChart) },
     { label: "—", title: "Divider", run: () => editor.chain().focus().setHorizontalRule().run() },
     { label: "↶", title: "Undo (⌘Z)", run: () => editor.chain().focus().undo().run(), enabled: state.canUndo },
     { label: "↷", title: "Redo (⇧⌘Z)", run: () => editor.chain().focus().redo().run(), enabled: state.canRedo },

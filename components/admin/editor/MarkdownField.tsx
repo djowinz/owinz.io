@@ -51,6 +51,11 @@ export const MarkdownField = forwardRef<BodyEditorHandle, Props>(function Markdo
       const offset = text.indexOf("Describe the photo");
       replaceSelection(text, offset, offset + "Describe the photo".length);
     },
+    insertChart(source) {
+      replaceSelection("\n\n```chart\n" + source + "\n```\n\n");
+    },
+    // Chart positions come from the rich editor's Edit button; Markdown mode edits the text directly.
+    replaceChart() {},
     focus: () => area.current?.focus(),
   }));
 
