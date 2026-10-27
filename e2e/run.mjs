@@ -159,17 +159,18 @@ try {
   run(process.execPath, ["node_modules/drizzle-kit/bin.cjs", "migrate"]);
   run(process.execPath, ["--import", "tsx", "scripts/seed-if-empty.ts"]);
 
-  const next = path.join(ROOT, "node_modules", ".bin", "next");
+  // Run Next's JS entry with node: the .bin shim is a shell script on Windows.
+  const next = path.join(ROOT, "node_modules", "next", "dist", "bin", "next");
   if (reuseBuild && fs.existsSync(path.join(ROOT, ".next", "BUILD_ID"))) {
     log("reusing the existing .next build");
   } else {
     log("next build");
-    run(next, ["build"]);
+    run(process.execPath, [next, "build"]);
   }
 
   const port = await freePort();
   const base = `http://localhost:${port}`;
-  server = spawn(next, ["start", "-p", String(port)], {
+  server = spawn(process.execPath, [next, "start", "-p", String(port)], {
     cwd: ROOT,
     env: { ...env, BETTER_AUTH_URL: base },
     stdio: ["ignore", "pipe", "pipe"],

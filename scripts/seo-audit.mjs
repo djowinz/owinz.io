@@ -29,8 +29,9 @@ async function freePort() {
 
 async function startServer() {
   const port = await freePort();
-  const next = path.join(process.cwd(), "node_modules", ".bin", "next");
-  const child = spawn(next, ["start", "-p", String(port)], { stdio: ["ignore", "ignore", "inherit"] });
+  // Run Next's JS entry with node: the .bin shim is a shell script on Windows.
+  const next = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
+  const child = spawn(process.execPath, [next, "start", "-p", String(port)], { stdio: ["ignore", "ignore", "inherit"] });
   const base = `http://localhost:${port}`;
   for (let i = 0; i < 120; i++) {
     try {
