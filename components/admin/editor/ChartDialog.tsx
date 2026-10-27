@@ -37,6 +37,7 @@ const fieldLabel = `${label} mb-1.5 block`;
 
 export function ChartDialog({ open, initial, onCancel, onSave }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
   // What to run once the dialog has closed: Save's callback, else Cancel.
   const after = useRef<(() => void) | null>(null);
 
@@ -66,7 +67,7 @@ export function ChartDialog({ open, initial, onCancel, onSave }: Props) {
     <dialog
       ref={dialog}
       aria-modal="true"
-      aria-labelledby="chart-dialog-title"
+      aria-labelledby={titleId}
       onClose={() => {
         const then = after.current ?? onCancel;
         after.current = null;
@@ -76,6 +77,7 @@ export function ChartDialog({ open, initial, onCancel, onSave }: Props) {
     >
       {open && (
         <ChartForm
+          titleId={titleId}
           initial={initial}
           onCancel={() => close()}
           onSave={(source) => close(() => onSave(source))}
@@ -85,7 +87,17 @@ export function ChartDialog({ open, initial, onCancel, onSave }: Props) {
   );
 }
 
-function ChartForm({ initial, onCancel, onSave }: { initial?: string; onCancel(): void; onSave(source: string): void }) {
+function ChartForm({
+  titleId,
+  initial,
+  onCancel,
+  onSave,
+}: {
+  titleId: string;
+  initial?: string;
+  onCancel(): void;
+  onSave(source: string): void;
+}) {
   const editing = initial !== undefined;
   const start = useMemo(() => (editing ? fromSource(initial) : { csv: "", settings: emptySettings() }), [editing, initial]);
   const [text, setText] = useState(start.csv);
@@ -104,7 +116,7 @@ function ChartForm({ initial, onCancel, onSave }: { initial?: string; onCancel()
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-edge px-5 py-4 sm:px-8">
-        <h2 id="chart-dialog-title" className="font-fraunces-italic text-2xl font-light italic tracking-[-0.02em]">
+        <h2 id={titleId}className="font-fraunces-italic text-2xl font-light italic tracking-[-0.02em]">
           {editing ? "Edit chart" : "Add a chart"}
         </h2>
         <span className={cn(label, "hidden sm:inline")}>Esc to close</span>
@@ -133,8 +145,8 @@ function ChartForm({ initial, onCancel, onSave }: { initial?: string; onCancel()
             )}
             {errors.length > 0 && (
               <ul role="alert" className="mt-2 space-y-1 text-xs text-red-700 dark:text-red-400">
-                {errors.slice(0, 3).map((e) => (
-                  <li key={e}>{e}</li>
+                {errors.slice(0, 3).map((e, i) => (
+                  <li key={`${i}-${e}`}>{e}</li>
                 ))}
               </ul>
             )}

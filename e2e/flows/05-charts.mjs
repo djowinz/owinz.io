@@ -142,6 +142,11 @@ export const flows = [
       await titleField.fill(newChartTitle);
       await dialog.getByRole("button", { name: "Save", exact: true }).click();
       await dialog.waitFor({ state: "hidden" });
+      // The block changed and the editor noticed, so the "Saved" we wait for is the new save.
+      await page.locator("[data-chart-block] .chart-title", { hasText: newChartTitle }).waitFor();
+      await eventually(async () => /unsaved|saving/i.test(await page.locator('[aria-live="polite"]').textContent()), {
+        message: "the editor to notice the edited chart",
+      });
       await waitForSaved(page);
 
       await page.reload();

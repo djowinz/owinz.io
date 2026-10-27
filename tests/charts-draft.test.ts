@@ -107,11 +107,35 @@ describe("fromSource", () => {
       xLabel: "Week of",
       colors: { a: "violet", b: "gold" },
       units: { b: "ms" },
+      axes: { a: "left", b: "right" },
       markers: [],
     });
     const a = analyzeData(csv);
     if (!a.ok) throw new Error();
     const r = buildDraft(a, settings);
     expect(r.ok && r.source).toBe(source.replace('"Week of"', "Week of"));
+  });
+
+  it("keeps hand-written axes on a two-axes chart through an edit", () => {
+    const source = [
+      "type: line",
+      "layout: dual",
+      "title: Before",
+      "series:",
+      "  a: { axis: right }",
+      "  b: { axis: left }",
+      "---",
+      "x,a,b",
+      "1,1,2",
+      "2,3,4",
+    ].join("\n");
+    const { csv, settings } = fromSource(source);
+    const a = analyzeData(csv);
+    if (!a.ok) throw new Error();
+    const r = buildDraft(a, { ...settings, title: "After" });
+    expect(r.ok && r.source).toBe(source.replace("Before", "After"));
+    // Off two axes, the axes go back to their defaults.
+    const stacked = buildDraft(a, { ...settings, layout: "stacked" });
+    expect(stacked.ok && stacked.spec.series.map((s) => s.axis)).toEqual(["left", "left"]);
   });
 });

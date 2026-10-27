@@ -3,7 +3,7 @@
 // same parser as everything else. Pure, so it's unit-tested.
 import { PALETTE, type PaletteName } from "./palette";
 import { parseChart, serializeChart, type ChartSpec, type ChartType, type Layout, type Marker } from "./spec";
-import { parseNumber, parseTable, suggestType, xKindOf, type XKind } from "./table";
+import { parseTable, suggestType, toCsv, xKindOf, type XKind } from "./table";
 
 export interface ChartSettings {
   /** Unset until the writer picks one; the suggestion applies meanwhile. */
@@ -15,6 +15,8 @@ export interface ChartSettings {
   /** Keyed by series name, so they survive a re-paste. */
   colors: Record<string, PaletteName>;
   units: Record<string, string>;
+  /** From an edited block; used on a two-axes layout, else the default axis. */
+  axes: Record<string, "left" | "right">;
   markers: Marker[];
 }
 
@@ -37,6 +39,7 @@ export const emptySettings = (): ChartSettings => ({
   xLabel: "",
   colors: {},
   units: {},
+  axes: {},
   markers: [],
 });
 
@@ -71,18 +74,8 @@ const optional = <K extends string>(key: K, value: string) => {
 export function buildDraft(a: Extract<Analysis, { ok: true }>, settings: ChartSettings): Draft {
   const [xName, ...names] = a.columns;
   const layout = effectiveLayout(settings.layout, names.length);
-  const errors: string[] = [];
-  const rows = a.rows.map((r, ri) => ({
-    x: r[0],
-    values: names.map((name, si) => {
-      const n = parseNumber(r[si + 1]);
-      if (n === undefined) errors.push(`"${r[si + 1]}" in ${name} isn't a number (row ${ri + 2})`);
-      return n ?? null;
-    }),
-  }));
-  if (errors.length) return { ok: false, errors };
-
-  const draft: ChartSpec = {
+  // The settings only; the pasted cells go in as text, so parseChart checks them.
+  const header: ChartSpec = {
     type: settings.type ?? a.suggestion.type,
     layout,
     ...optional("title", settings.title),
@@ -91,18 +84,22 @@ export function buildDraft(a: Extract<Analysis, { ok: true }>, settings: ChartSe
     series: names.map((name, i) => ({
       name,
       color: settings.colors[name] ?? PALETTE[i % PALETTE.length],
-      axis: layout === "dual" && i === 1 ? "right" : "left",
+      // Axes only mean something on two axes; there a hand-written choice is kept.
+      axis: layout === "dual" ? (settings.axes[name] ?? (i === 1 ? "right" : "left")) : "left",
       ...optional("unit", settings.units[name] ?? ""),
     })),
     // A row left fully blank is ignored; a half-filled one is an error.
     markers: settings.markers
       .map((m) => ({ x: m.x.trim(), label: m.label.trim() }))
       .filter((m) => m.x || m.label),
-    rows,
+    rows: [],
   };
-  const source = serializeChart(draft);
-  const parsed = parseChart(source);
-  return parsed.ok ? { ok: true, spec: parsed.spec, source } : { ok: false, errors: parsed.errors };
+  // No header line can be `---` (serializeChart quotes leading dashes), so the first one is the separator.
+  const settingsText = serializeChart(header);
+  const yaml = settingsText.slice(0, settingsText.indexOf("\n---\n"));
+  const parsed = parseChart(`${yaml}\n---\n${toCsv(a.columns, a.rows)}`);
+  if (!parsed.ok) return { ok: false, errors: parsed.errors };
+  return { ok: true, spec: parsed.spec, source: serializeChart(parsed.spec) };
 }
 
 /** Edit mode: an existing block's CSV (the text after the `---` line) and settings. */
@@ -122,6 +119,7 @@ export function fromSource(source: string): { csv: string; settings: ChartSettin
       xLabel: spec.x.label ?? "",
       colors: Object.fromEntries(spec.series.map((s) => [s.name, s.color])),
       units: Object.fromEntries(spec.series.flatMap((s) => (s.unit ? [[s.name, s.unit]] : []))),
+      axes: Object.fromEntries(spec.series.map((s) => [s.name, s.axis])),
       markers: spec.markers.map((m) => ({ ...m })),
     },
   };
