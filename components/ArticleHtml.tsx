@@ -6,6 +6,7 @@
 // Until a chart mounts, CSS (app/globals.css) hides the fallback table and
 // reserves the chart's height, so the page doesn't jump.
 import { useLayoutEffect, useRef } from "react";
+import { flushSync } from "react-dom";
 import { createRoot, type Root } from "react-dom/client";
 import { ChartBoundary } from "./charts/ChartBoundary";
 import type { ChartSpec } from "@/lib/charts/spec";
@@ -36,7 +37,7 @@ export default function ArticleHtml({ html, className }: { html: string; classNa
       mount?.removeAttribute("aria-hidden");
     };
 
-    const mountAll = ({ default: ChartView }: ChartViewModule) => {
+    const mountAll = ({ default: ChartView }: ChartViewModule, sync: boolean) => {
       for (const figure of figures) {
         let spec: ChartSpec;
         try {
@@ -49,21 +50,25 @@ export default function ArticleHtml({ html, className }: { html: string; classNa
         mount.setAttribute("aria-hidden", "true"); // the data table carries the content
         figure.appendChild(mount);
         const root = createRoot(mount);
-        // Rendered from a layout effect, this commits before the browser paints.
-        root.render(
+        const chart = (
           <ChartBoundary onError={() => fail(figure, mount)}>
             <ChartView spec={spec} />
-          </ChartBoundary>,
+          </ChartBoundary>
         );
+        // From the layout effect this commits before the browser paints. After
+        // the first import it would land a frame after data-hydrated drops the
+        // reserved height, so render it synchronously.
+        if (sync) flushSync(() => root.render(chart));
+        else root.render(chart);
         mounted.push({ mount, root });
         figure.setAttribute("data-hydrated", "");
       }
     };
 
-    if (chartView) mountAll(chartView);
+    if (chartView) mountAll(chartView, false);
     else {
       loadChartView().then(
-        (m) => !cancelled && mountAll(m),
+        (m) => !cancelled && mountAll(m, true),
         () => !cancelled && figures.forEach((f) => fail(f)),
       );
     }
