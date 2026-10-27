@@ -1,4 +1,8 @@
 import { JSON_SCHEMA, load } from "js-yaml";
+import remarkGfm from "remark-gfm";
+import remarkParse from "remark-parse";
+import { unified } from "unified";
+import { visit } from "unist-util-visit";
 import { PALETTE, type PaletteName } from "./palette";
 import { parseNumber, parseTable, toCsv, xKindOf, type XKind } from "./table";
 
@@ -226,11 +230,16 @@ export function serializeChart(spec: ChartSpec): string {
   return out.join("\n");
 }
 
-/** Fences whose info string is exactly `chart`. Group 1 is the inner text. */
-export const CHART_FENCE = /^```chart[ \t]*\n([\s\S]*?)\n```[ \t]*$/gm;
-
+/**
+ * The inner text of every chart block the site renders as a chart: any fenced
+ * code block whose language is `chart` (``` or ~~~, inside lists or quotes),
+ * found by the same Markdown parser as lib/content/render.ts.
+ */
 export function chartSources(markdown: string): string[] {
-  // Fresh RegExp: a shared /g regex would carry lastIndex between calls.
-  const re = new RegExp(CHART_FENCE.source, CHART_FENCE.flags);
-  return Array.from(markdown.matchAll(re), (m) => m[1]);
+  const sources: string[] = [];
+  const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown);
+  visit(tree, "code", (node) => {
+    if (node.lang === "chart") sources.push(node.value);
+  });
+  return sources;
 }

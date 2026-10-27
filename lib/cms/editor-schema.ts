@@ -54,7 +54,8 @@ export const Chart = Node.create({
 
   markdownTokenName: "code",
   parseMarkdown: (token, helpers) => {
-    // Only ``` fences: that's what the site renders as a chart (CHART_FENCE) and what this writes back.
+    // Only ``` fences, which is what this writes back; a ~~~chart fence stays a
+    // code block here so it saves unchanged (the site still draws it).
     if (!token.raw?.startsWith("```") || token.lang !== "chart") return [];
     return helpers.createNode("chart", { source: token.text ?? "" });
   },

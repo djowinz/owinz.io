@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { chartSources, parseChart, serializeChart } from "../lib/charts/spec";
+import { markdownToHtml } from "../lib/content/render";
 
 const EXAMPLE = `type: line
 layout: stacked
@@ -172,5 +173,29 @@ describe("chartSources", () => {
   it("allows blank lines and ignores other info strings", () => {
     const md = "```chart\ntype: bar\n\n---\nq,v\n\nQ1,1\n```\n\n```chartx\nno\n```";
     expect(chartSources(md)).toEqual(["type: bar\n\n---\nq,v\n\nQ1,1"]);
+  });
+
+  // The publish checks must see exactly the blocks the site draws as charts.
+  const SRC = "type: bar\n---\nq,v\nQ1,1\nQ2,2";
+  it.each([
+    ["a ~~~ fence", "~~~chart\n" + SRC + "\n~~~"],
+    ["a fence with an info string after chart", "```chart wide\n" + SRC + "\n```"],
+    ["a fence in a list item", "- one\n\n  ```chart\n  " + SRC.replace(/\n/g, "\n  ") + "\n  ```"],
+    ["a fence in a blockquote", "> ```chart\n> " + SRC.replace(/\n/g, "\n> ") + "\n> ```"],
+  ])("finds %s, like the renderer", async (_name, md) => {
+    expect(chartSources(md)).toEqual([SRC]);
+    expect((await markdownToHtml(md)).match(/<figure class="chart"/g)).toHaveLength(1);
+  });
+
+  it("finds CRLF fences, like the renderer", async () => {
+    const md = "```chart\r\n" + SRC.replace(/\n/g, "\r\n") + "\r\n```";
+    expect(chartSources(md)).toHaveLength(1);
+    expect((await markdownToHtml(md)).match(/<figure class="chart"/g)).toHaveLength(1);
+  });
+
+  it("skips what the renderer doesn't draw", async () => {
+    const md = "    ```chart\n    indented code, not a fence\n    ```\n\n`chart` inline";
+    expect(chartSources(md)).toEqual([]);
+    expect(await markdownToHtml(md)).not.toContain('<figure class="chart"');
   });
 });
