@@ -21,6 +21,7 @@ This is also the groundwork for the future CMS AI writing assistant, which shoul
 - Formulas, transforms, live or remote data sources, file uploads, per-point styling, custom hex colors, chart animations beyond Recharts defaults.
 - Design visuals (mockups, screenshots). Those stay images.
 - The AI assistant.
+- Y-axis labels, for now. Series units on the tick labels cover what a Y label would say.
 
 ## Anti-goals (failure even if it "works")
 
