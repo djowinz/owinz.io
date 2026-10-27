@@ -29,6 +29,16 @@ describe("rich-text editor ↔ Markdown", () => {
     expect(out).toContain("![Plain](plain.png)");
   });
 
+  const CHART = "```chart\ntype: line\nlayout: stacked\ntitle: \"Faster to ship: slower to fix\"\nseries:\n  MTTR (hours): { color: rust, unit: h }\nmarkers:\n  - x: 2026-06-08\n    label: AI rollout\n---\nweek,Lead time (days),MTTR (hours)\n2026-04-27,4.3,3.0\n2026-05-04,,3.1\n```";
+  it("keeps chart blocks byte-for-byte", () => {
+    expect(roundTrip(CHART).trim()).toBe(CHART);
+    expect(roundTrip(`Before\n\n${CHART}\n\nAfter`)).toContain(CHART);
+  });
+  it("keeps a chart block with a blank line inside", () => {
+    const md = "```chart\ntype: bar\n---\nq,v\n\nQ1,1\n```";
+    expect(roundTrip(md).trim()).toBe(md);
+  });
+
   it.each([
     ["code blocks with a language", "```ts\nconst x: number = 1;\n```"],
     ["tables", "| A | B |\n| --- | --- |\n| 1 | 2 |"],
