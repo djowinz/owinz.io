@@ -2,7 +2,7 @@
 
 // Interactive rendering of a ChartSpec. Loaded only on pages that contain a
 // chart (ArticleHtml dynamic-imports it), so Recharts stays out of other bundles.
-import type { ReactElement } from "react";
+import { useId, type ReactElement } from "react";
 import {
   Area,
   AreaChart,
@@ -98,6 +98,8 @@ function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabe
       labelFormatter={(l) => (timeAxis && typeof l === "number" ? fullDate(l) : String(l))}
       formatter={(v, _name, item) => {
         const s = spec.series.find((x) => x.name === item.name);
+        // Scatter tooltips also list the x entry, which is not a series.
+        if (!s && timeAxis && typeof v === "number") return fullDate(v);
         return typeof v === "number" ? withUnit(v, s?.unit) : String(v ?? "");
       }}
     />
@@ -199,6 +201,7 @@ function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabe
         {refLines}
         {indexes.map((i) => (
           <Scatter
+            dataKey="y"
             key={spec.series[i].name}
             name={spec.series[i].name}
             yAxisId={axisOf(i)}
@@ -232,6 +235,8 @@ function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabe
 }
 
 export default function ChartView({ spec }: { spec: ChartSpec }) {
+  // Recharts syncs tooltips globally by syncId, so each chart instance needs its own.
+  const syncId = useId();
   const rows = toRechartsRows(spec);
   const all = spec.series.map((_, i) => i);
 
@@ -248,7 +253,7 @@ export default function ChartView({ spec }: { spec: ChartSpec }) {
               rows={rows}
               indexes={[i]}
               height={160}
-              syncId="chart-sync"
+              syncId={syncId}
               showLegend={false}
               showMarkerLabels={i === 0}
             />
