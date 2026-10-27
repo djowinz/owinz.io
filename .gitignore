@@ -46,3 +46,6 @@ next-env.d.ts
 
 # parallel git worktrees (sub-agents)
 /.claude/worktrees/
+
+# brainstorming mockups
+.superpowers/
