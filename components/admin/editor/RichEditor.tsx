@@ -2,9 +2,10 @@
 
 import { Markdown } from "@tiptap/markdown";
 import { Placeholder } from "@tiptap/extensions";
-import { NodeSelection, type Selection } from "@tiptap/pm/state";
+import { NodeSelection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
+import { chartInsertPos } from "@/lib/cms/chart-insert";
 import { chartNode, editorExtensions } from "@/lib/cms/editor-schema";
 import { cn } from "@/lib/utils";
 import { input as inputClass, label } from "../ui";
@@ -15,7 +16,7 @@ export type Placement = "" | "left" | "right";
 
 export interface BodyEditorHandle {
   insertImage(name: string, placement: Placement): void;
-  /** Inserts a ```chart block with this source at the selection and selects it. */
+  /** Inserts a top-level ```chart block with this source at the selection (lib/cms/chart-insert.ts) and selects it. */
   insertChart(source: string): void;
   /** Replaces the chart block at `pos` (from onEditChart) with this source. */
   replaceChart(pos: number, source: string): void;
@@ -37,20 +38,6 @@ interface Props {
 const placementOf = (src: string): Placement => (src.match(/#(left|right)$/)?.[1] as Placement) ?? "";
 const withPlacement = (src: string, placement: Placement) =>
   src.replace(/#(left|right)$/, "") + (placement ? `#${placement}` : "");
-
-/**
- * Where a new chart block goes: after a selected node (not over it), in place
- * of an empty paragraph, or after the block holding the caret.
- */
-function chartSlot(selection: Selection): [number, number] {
-  if (selection instanceof NodeSelection) return [selection.to, selection.to];
-  const { $from } = selection;
-  if ($from.depth === 0) return [$from.pos, $from.pos];
-  // A cell selection or the like: after the whole top-level block.
-  if (!$from.parent.isTextblock) return [$from.after(1), $from.after(1)];
-  if ($from.parent.content.size === 0) return [$from.before(), $from.after()];
-  return [$from.after(), $from.after()];
-}
 
 /** WYSIWYG editing that reads and writes Markdown (lib/cms/editor-schema.ts). */
 export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEditor(
@@ -132,7 +119,7 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
     insertChart(source) {
       if (!editor) return;
       const chart = editor.schema.nodeFromJSON(chartNode(source));
-      const [from, to] = chartSlot(editor.state.selection);
+      const [from, to] = chartInsertPos(editor.state);
       editor
         .chain()
         .focus()
