@@ -18,6 +18,7 @@ import {
   unpublishProjectAction,
 } from "@/app/admin/(app)/projects/actions";
 import { cn } from "@/lib/utils";
+import ArticleHtml from "@/components/ArticleHtml";
 import { slugify } from "@/lib/cms/validate";
 import type { ProjectCheckResult, ProjectInput } from "@/lib/cms/validate-project";
 import { buttonDanger, buttonPrimary, buttonQuiet, buttonSecondary, input as inputClass, label } from "../ui";
@@ -733,7 +734,7 @@ export function ProjectEditor(props: Props) {
                   )}
                 </dl>
               )}
-              <div className="prose prose-sections" dangerouslySetInnerHTML={{ __html: preview }} />
+              <ArticleHtml className="prose prose-sections" html={preview} />
             </article>
           </div>
         </div>

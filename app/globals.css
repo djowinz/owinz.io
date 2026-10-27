@@ -28,6 +28,15 @@
     --secondary-foreground: #2a2a2a;
     --muted-foreground: #666666;
     --border: #e0dfd8;
+    /* Chart palette (lib/charts/palette.ts order); violet is the accent. */
+    --chart-violet: #7c3aed;
+    --chart-rust: #c2410c;
+    --chart-teal: #00968a;
+    --chart-gold: #a16207;
+    --chart-blue: #2563eb;
+    --chart-magenta: #db2777;
+    --chart-olive: #4d7c0f;
+    --chart-slate: #5b6ec0;
 }
 
 /* `:root.dark` outranks `:root` by specificity, so the dark palette wins
@@ -44,6 +53,14 @@
     --secondary-foreground: #e4dfd4;
     --muted-foreground: #8f8a7f;
     --border: #2d2b26;
+    --chart-violet: #b69bff;
+    --chart-rust: #e06a30;
+    --chart-teal: #17a99b;
+    --chart-gold: #b88a10;
+    --chart-blue: #4b8fe8;
+    --chart-magenta: #d9578f;
+    --chart-olive: #85a026;
+    --chart-slate: #7088d8;
 }
 
 /* "Available" status dot: a ring that spreads out from the dot and fades. */
@@ -425,4 +442,39 @@ body {
     to {
         transform: scaleX(1);
     }
+}
+
+/* Inline charts. The server renders a figure with a data table; ArticleHtml
+   mounts the interactive chart and sets data-hydrated, after which the table
+   stays available to screen readers only. */
+figure.chart {
+    margin: 2rem 0;
+    min-height: 16rem;
+}
+figure.chart figcaption {
+    font-family: var(--font-geist-mono, ui-monospace, monospace);
+    font-size: 11px;
+    letter-spacing: 0.7px;
+    color: var(--muted);
+    margin-bottom: 0.75rem;
+}
+figure.chart[data-hydrated] table.chart-data {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+figure.chart.chart-error {
+    min-height: 0;
+    border: 1px solid var(--edge);
+    padding: 0.75rem 1rem;
+    font-size: 13px;
+}
+figure.chart.chart-error figcaption {
+    color: var(--foreground);
 }

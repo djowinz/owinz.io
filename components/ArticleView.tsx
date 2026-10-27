@@ -3,6 +3,7 @@
 // (app/admin/preview/writing/[id]), so the preview can't drift from the site.
 import { format } from "date-fns";
 import Link from "next/link";
+import ArticleHtml from "@/components/ArticleHtml";
 import { readingTime } from "reading-time-estimator";
 import { JsonLd } from "@/components/JsonLd";
 import type { WritingPost } from "@/lib/content/types";
@@ -124,10 +125,7 @@ export function ArticleView({ post, readNext }: { post: WritingPost; readNext: W
       </header>
 
       {/* Body */}
-      <div
-        className="prose"
-        dangerouslySetInnerHTML={{ __html: post.content }}
-      />
+      <ArticleHtml className="prose" html={post.content} />
 
       {/* Footer meta */}
       <div className="mt-16 pt-6 border-t border-edge flex flex-wrap gap-4 justify-between items-center font-mono text-[11px] tracking-[0.7px] text-muted">

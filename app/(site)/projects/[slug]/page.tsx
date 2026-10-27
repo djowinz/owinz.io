@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { JsonLd } from "@/components/JsonLd";
+import ArticleHtml from "@/components/ArticleHtml";
 import { breadcrumbSchema, projectSchema } from "@/lib/schema";
 import { isoDate, pageMetadata } from "@/lib/seo";
 import { withPlaceholder } from "@/lib/static-params";
@@ -188,10 +189,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       )}
 
       {/* Body — § counters via .prose-sections */}
-      <div
-        className="prose prose-sections"
-        dangerouslySetInnerHTML={{ __html: project.content }}
-      />
+      <ArticleHtml className="prose prose-sections" html={project.content} />
 
       {/* Next project footer */}
       {next.slug !== project.slug && (

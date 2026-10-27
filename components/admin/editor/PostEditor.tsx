@@ -15,6 +15,7 @@ import {
   unpublishAction,
 } from "@/app/admin/(app)/writing/actions";
 import { cn } from "@/lib/utils";
+import ArticleHtml from "@/components/ArticleHtml";
 import { slugify, type CheckResult, type PostInput } from "@/lib/cms/validate";
 import { buttonDanger, buttonPrimary, buttonQuiet, buttonSecondary, input as inputClass, label } from "../ui";
 import { HistoryDialog, type HistoryEntry } from "./HistoryDialog";
@@ -590,7 +591,7 @@ export function PostEditor(props: Props) {
                 <p className="font-fraunces-italic italic font-light text-lg leading-snug text-muted mb-8">{input.excerpt}</p>
               )}
               <div className="mb-8 border-b border-edge pb-4 text-[13px]">{input.byline?.trim() || defaultByline}</div>
-              <div className="prose" dangerouslySetInnerHTML={{ __html: preview }} />
+              <ArticleHtml className="prose" html={preview} />
             </article>
           </div>
         </div>
