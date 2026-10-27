@@ -2,6 +2,7 @@
 
 import { Markdown } from "@tiptap/markdown";
 import { Placeholder } from "@tiptap/extensions";
+import { NodeSelection, type Selection } from "@tiptap/pm/state";
 import { EditorContent, useEditor, useEditorState, type Editor } from "@tiptap/react";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { chartNode, editorExtensions } from "@/lib/cms/editor-schema";
@@ -14,7 +15,7 @@ export type Placement = "" | "left" | "right";
 
 export interface BodyEditorHandle {
   insertImage(name: string, placement: Placement): void;
-  /** Inserts a ```chart block with this source at the selection. */
+  /** Inserts a ```chart block with this source at the selection and selects it. */
   insertChart(source: string): void;
   /** Replaces the chart block at `pos` (from onEditChart) with this source. */
   replaceChart(pos: number, source: string): void;
@@ -36,6 +37,20 @@ interface Props {
 const placementOf = (src: string): Placement => (src.match(/#(left|right)$/)?.[1] as Placement) ?? "";
 const withPlacement = (src: string, placement: Placement) =>
   src.replace(/#(left|right)$/, "") + (placement ? `#${placement}` : "");
+
+/**
+ * Where a new chart block goes: after a selected node (not over it), in place
+ * of an empty paragraph, or after the block holding the caret.
+ */
+function chartSlot(selection: Selection): [number, number] {
+  if (selection instanceof NodeSelection) return [selection.to, selection.to];
+  const { $from } = selection;
+  if ($from.depth === 0) return [$from.pos, $from.pos];
+  // A cell selection or the like: after the whole top-level block.
+  if (!$from.parent.isTextblock) return [$from.after(1), $from.after(1)];
+  if ($from.parent.content.size === 0) return [$from.before(), $from.after()];
+  return [$from.after(), $from.after()];
+}
 
 /** WYSIWYG editing that reads and writes Markdown (lib/cms/editor-schema.ts). */
 export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEditor(
@@ -63,7 +78,7 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
         const photo = photosRef.current.find((p) => p.name === name);
         return photo ? photoSrc(photo) : src;
       },
-      codeBlockView: chartNodeView((pos, source) => onEditChartRef.current?.(pos, source)),
+      chartView: chartNodeView((pos, source) => onEditChartRef.current?.(pos, source)),
     }),
     Markdown,
     Placeholder.configure({ placeholder: "Start writing… drop photos anywhere." }),
@@ -115,15 +130,38 @@ export const RichEditor = forwardRef<BodyEditorHandle, Props>(function RichEdito
         .run();
     },
     insertChart(source) {
-      editor?.chain().focus().insertContent(chartNode(source)).run();
-    },
-    replaceChart(pos, source) {
-      const node = editor?.state.doc.nodeAt(pos);
-      if (!editor || node?.type.name !== "codeBlock") return;
+      if (!editor) return;
+      const chart = editor.schema.nodeFromJSON(chartNode(source));
+      const [from, to] = chartSlot(editor.state.selection);
       editor
         .chain()
         .focus()
-        .insertContentAt({ from: pos, to: pos + node.nodeSize }, chartNode(source))
+        .command(({ tr }) => {
+          tr.replaceWith(from, to, chart);
+          // Select the new chart, so the caret never lands somewhere hidden.
+          const start = tr.mapping.map(from, -1);
+          let at = -1;
+          tr.doc.nodesBetween(start, tr.mapping.map(to, 1), (node, pos) => {
+            if (at === -1 && node.type.name === "chart") at = pos;
+            return at === -1;
+          });
+          if (at !== -1) tr.setSelection(NodeSelection.create(tr.doc, at));
+          return true;
+        })
+        .run();
+    },
+    replaceChart(pos, source) {
+      if (!editor || pos < 0 || pos > editor.state.doc.content.size) return;
+      // The document may have moved on (a restore); only ever replace a chart.
+      if (editor.state.doc.nodeAt(pos)?.type.name !== "chart") return;
+      editor
+        .chain()
+        .focus()
+        .command(({ tr }) => {
+          tr.setNodeMarkup(pos, undefined, { source });
+          tr.setSelection(NodeSelection.create(tr.doc, pos));
+          return true;
+        })
         .run();
     },
     focus: () => editor?.commands.focus(),

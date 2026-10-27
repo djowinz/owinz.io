@@ -1,8 +1,7 @@
 // The rich-text editor's document model, shared by the browser editor and
 // the round-trip tests. Every node here reads and writes Markdown, which
 // stays the stored format: what the editor saves is what the site renders.
-import type { AnyExtension, JSONContent, NodeViewRenderer } from "@tiptap/core";
-import CodeBlock from "@tiptap/extension-code-block";
+import { Node, type AnyExtension, type JSONContent, type NodeViewRenderer } from "@tiptap/core";
 import Image from "@tiptap/extension-image";
 import { BulletList, OrderedList } from "@tiptap/extension-list";
 import { TableKit } from "@tiptap/extension-table";
@@ -11,14 +10,56 @@ import StarterKit from "@tiptap/starter-kit";
 export interface EditorSchemaOptions {
   /** Maps an image's Markdown src (e.g. "harbor.jpg#right") to a URL the editor can display. */
   displaySrc?: (src: string) => string;
-  /** Draws code blocks in the browser editor (chart blocks as charts). Omitted in tests. */
-  codeBlockView?: NodeViewRenderer;
+  /** Draws chart blocks in the browser editor. Omitted in tests. */
+  chartView?: NodeViewRenderer;
 }
 
-/** A chart block: an ordinary code block with language "chart", saved as a ```chart fence. */
+/** A chart block as the editor holds it; saved as a ```chart fence around `source`. */
 export function chartNode(source: string): JSONContent {
-  return { type: "codeBlock", attrs: { language: "chart" }, content: [{ type: "text", text: source }] };
+  return { type: "chart", attrs: { source } };
 }
+
+/**
+ * ```chart blocks are one atom node, so the editor moves, selects, and
+ * deletes them as a whole instead of editing their hidden source text. They
+ * claim fenced "code" tokens with language chart ahead of codeBlock (higher
+ * priority); every other code block falls through to codeBlock unchanged.
+ */
+export const Chart = Node.create({
+  name: "chart",
+  group: "block",
+  atom: true,
+  selectable: true,
+  draggable: true,
+  // Above codeBlock (100) so its Markdown handler runs first; below paragraph (1000), the default block.
+  priority: 101,
+
+  addAttributes() {
+    return { source: { default: "", rendered: false } };
+  },
+
+  parseHTML() {
+    // Pasted or copied chart blocks: a pre > code.language-chart.
+    return [
+      {
+        tag: "pre",
+        priority: 60,
+        getAttrs: (el) => (el.querySelector("code.language-chart") ? { source: el.textContent ?? "" } : false),
+      },
+    ];
+  },
+  renderHTML({ node }) {
+    return ["pre", {}, ["code", { class: "language-chart" }, String(node.attrs.source)]];
+  },
+
+  markdownTokenName: "code",
+  parseMarkdown: (token, helpers) => {
+    // Only ``` fences: that's what the site renders as a chart (CHART_FENCE) and what this writes back.
+    if (!token.raw?.startsWith("```") || token.lang !== "chart") return [];
+    return helpers.createNode("chart", { source: token.text ?? "" });
+  },
+  renderMarkdown: (node) => "```chart\n" + String(node.attrs?.source ?? "") + "\n```",
+});
 
 /**
  * Images keep their Markdown src untouched (file name plus #left/#right
@@ -75,14 +116,12 @@ export function editorExtensions(options: EditorSchemaOptions = {}): AnyExtensio
       underline: false,
       bulletList: false,
       orderedList: false,
-      // Re-added below, so the browser editor can give it a node view.
-      codeBlock: false,
       link: { openOnClick: false, autolink: true, defaultProtocol: "https" },
     }),
-    CodeBlock.extend({ addNodeView: options.codeBlockView ? () => options.codeBlockView! : undefined }),
     keepLooseness(BulletList),
     keepLooseness(OrderedList),
     articleImage(options),
+    options.chartView ? Chart.extend({ addNodeView: () => options.chartView! }) : Chart,
     TableKit.configure({ table: { resizable: false } }),
   ];
 }

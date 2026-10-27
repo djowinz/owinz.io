@@ -1,9 +1,9 @@
 "use client";
 
-// The rich editor's code blocks. Ordinary blocks render exactly as TipTap's
-// default (pre > code, editable text); ```chart blocks render as the chart
-// itself, a non-editable block with an Edit button. The document still holds
-// the block's source text, so the saved Markdown never changes.
+// The rich editor's ```chart blocks (the `chart` atom node in
+// lib/cms/editor-schema.ts) render as the chart itself, with an Edit button.
+// The node keeps the block's source untouched, so the saved Markdown never
+// changes. Ordinary code blocks keep TipTap's default rendering.
 import type { NodeViewRenderer } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { lazy, Suspense } from "react";
@@ -14,7 +14,7 @@ import { buttonQuiet } from "../ui";
 // Recharts loads only once a chart block shows up.
 const ChartView = lazy(() => import("@/components/charts/ChartView"));
 
-const isChart = (node: PMNode) => node.attrs.language === "chart";
+const sourceOf = (node: PMNode) => String(node.attrs.source ?? "");
 
 function ChartBlock({ source, onEdit }: { source: string; onEdit(): void }) {
   const result = parseChart(source);
@@ -50,31 +50,9 @@ function ChartBlock({ source, onEdit }: { source: string; onEdit(): void }) {
   );
 }
 
-/** Code blocks for the browser editor; `onEdit` opens the chart dialog for the block at `pos`. */
+/** Chart blocks for the browser editor; `onEdit` opens the chart dialog for the block at `pos`. */
 export function chartNodeView(onEdit: (pos: number, source: string) => void): NodeViewRenderer {
-  return ({ node, getPos, HTMLAttributes, editor }) => {
-    if (!isChart(node)) {
-      const pre = document.createElement("pre");
-      for (const [key, value] of Object.entries(HTMLAttributes)) {
-        if (value != null) pre.setAttribute(key, String(value));
-      }
-      const code = document.createElement("code");
-      const setLanguage = (n: PMNode) => {
-        code.className = n.attrs.language ? `language-${n.attrs.language}` : "";
-      };
-      setLanguage(node);
-      pre.appendChild(code);
-      return {
-        dom: pre,
-        contentDOM: code,
-        update(next) {
-          if (next.type !== node.type || isChart(next)) return false;
-          setLanguage(next);
-          return true;
-        },
-      };
-    }
-
+  return ({ node, getPos, editor }) => {
     let current = node;
     const dom = document.createElement("div");
     dom.contentEditable = "false";
@@ -82,15 +60,15 @@ export function chartNodeView(onEdit: (pos: number, source: string) => void): No
     const root: Root = createRoot(dom);
     const edit = () => {
       const pos = getPos();
-      if (editor.isEditable && typeof pos === "number") onEdit(pos, current.textContent);
+      if (editor.isEditable && typeof pos === "number") onEdit(pos, sourceOf(current));
     };
-    const render = () => root.render(<ChartBlock source={current.textContent} onEdit={edit} />);
+    const render = () => root.render(<ChartBlock source={sourceOf(current)} onEdit={edit} />);
     render();
 
     return {
       dom,
       update(next) {
-        if (next.type !== current.type || !isChart(next)) return false;
+        if (next.type !== current.type) return false;
         current = next;
         render();
         return true;

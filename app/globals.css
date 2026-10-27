@@ -404,6 +404,11 @@ body {
     outline-offset: 3px;
 }
 
+.ProseMirror [data-chart-block].ProseMirror-selectednode {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+}
+
 /* Reading progress (components/ReadingProgress.tsx): a bar across the top of
    article pages, in the accent color, that fills as the article body scrolls
    past — from the body's top reaching the top of the screen to its bottom
