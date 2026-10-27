@@ -3,6 +3,7 @@
 // block, warnings advise).
 import { isLocalImage, splitPlacement } from "../rehype-images";
 import { IMAGE_TYPES } from "../image-types";
+import { chartIssues } from "../charts/check";
 import { imageRefs, SLUG } from "./validate";
 
 export interface ProjectInput {
@@ -165,6 +166,10 @@ export function checkProjectForPublish(input: ProjectInput, photos: ReadonlySet<
   for (const [, url] of prose.matchAll(/\]\((https?:\/\/[^)\s]+)/g)) {
     if (PLACEHOLDER.test(url)) warnings.push({ field: "body", message: `${url} looks like a placeholder link.` });
   }
+
+  const charts = chartIssues(input.body);
+  for (const message of charts.errors) errors.push({ field: "body", message });
+  for (const message of charts.warnings) warnings.push({ field: "body", message });
 
   return { errors, warnings };
 }

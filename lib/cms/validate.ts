@@ -3,6 +3,7 @@
 // draft is fine), and what publishing needs (errors block, warnings advise).
 import { isLocalImage, splitPlacement } from "../rehype-images";
 import { IMAGE_TYPES } from "../image-types";
+import { chartIssues } from "../charts/check";
 
 export interface PostInput {
   title: string;
@@ -139,6 +140,10 @@ export function checkPostForPublish(input: PostInput, photos: ReadonlySet<string
   for (const [, url] of prose.matchAll(/\]\((https?:\/\/[^)\s]+)/g)) {
     if (PLACEHOLDER.test(url)) warnings.push({ field: "body", message: `${url} looks like a placeholder link.` });
   }
+
+  const charts = chartIssues(input.body);
+  for (const message of charts.errors) errors.push({ field: "body", message });
+  for (const message of charts.warnings) warnings.push({ field: "body", message });
 
   return { errors, warnings };
 }
