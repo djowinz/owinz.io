@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import ArticleHtml from "@/components/ArticleHtml";
 import { slugify, type CheckResult, type PostInput } from "@/lib/cms/validate";
 import { buttonDanger, buttonPrimary, buttonQuiet, buttonSecondary, input as inputClass, label } from "../ui";
+import { ChartDialog } from "./ChartDialog";
 import { HistoryDialog, type HistoryEntry } from "./HistoryDialog";
 import { MarkdownField } from "./MarkdownField";
 import { RichEditor, type BodyEditorHandle } from "./RichEditor";
@@ -83,6 +84,8 @@ export function PostEditor(props: Props) {
   const body = useRef<BodyEditorHandle>(null);
   const [mode, setMode] = useState<"visual" | "markdown">("visual");
   const [showPreview, setShowPreview] = useState(false);
+  // The chart dialog: open with nothing to add a chart, with a block's position and source to edit it.
+  const [chart, setChart] = useState<{ pos?: number; source?: string } | null>(null);
   const dirty = serialize(input) !== lastSaved;
 
   const update = (patch: Partial<PostInput>) =>
@@ -553,6 +556,8 @@ export function PostEditor(props: Props) {
                 disabled={!editable}
                 photos={photos}
                 onFiles={(files) => uploadFiles(files)}
+                onAddChart={editable ? () => setChart({}) : undefined}
+                onEditChart={(pos, source) => setChart({ pos, source })}
               />
             ) : (
               <MarkdownField
@@ -604,6 +609,20 @@ export function PostEditor(props: Props) {
         busy={busy}
         onRestore={restoreVersion}
         onClose={() => setHistoryOpen(false)}
+      />
+
+      <ChartDialog
+        open={chart !== null}
+        initial={chart?.source}
+        onCancel={() => {
+          setChart(null);
+          body.current?.focus();
+        }}
+        onSave={(source) => {
+          if (chart?.pos !== undefined) body.current?.replaceChart(chart.pos, source);
+          else body.current?.insertChart(source);
+          setChart(null);
+        }}
       />
     </div>
   );
