@@ -4,8 +4,10 @@
 // against a live preview, and Insert/Save a canonical ```chart block. The
 // model lives in lib/charts/draft.ts; this is the form around it.
 import { lazy, Suspense, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChartBoundary } from "@/components/charts/ChartBoundary";
 import { cn } from "@/lib/utils";
 import { analyzeData, buildDraft, effectiveLayout, emptySettings, fromSource, summarize, type ChartSettings } from "@/lib/charts/draft";
+import { chartHeight } from "@/lib/charts/layout";
 import { PALETTE, colorVar } from "@/lib/charts/palette";
 import type { ChartType, Layout } from "@/lib/charts/spec";
 import { buttonPrimary, buttonQuiet, buttonSecondary, input as inputClass, label } from "../ui";
@@ -116,7 +118,7 @@ function ChartForm({
   return (
     <div className="flex h-full flex-col">
       <header className="flex items-center justify-between border-b border-edge px-5 py-4 sm:px-8">
-        <h2 id={titleId}className="font-fraunces-italic text-2xl font-light italic tracking-[-0.02em]">
+        <h2 id={titleId} className="font-fraunces-italic text-2xl font-light italic tracking-[-0.02em]">
           {editing ? "Edit chart" : "Add a chart"}
         </h2>
         <span className={cn(label, "hidden sm:inline")}>Esc to close</span>
@@ -274,9 +276,11 @@ function ChartForm({
                   {draft.spec.caption && <span className="chart-caption">{draft.spec.caption}</span>}
                 </figcaption>
               )}
-              <Suspense fallback={null}>
-                <ChartView spec={draft.spec} />
-              </Suspense>
+              <ChartBoundary resetKey={draft.spec}>
+                <Suspense fallback={<div style={{ height: chartHeight(draft.spec) }} />}>
+                  <ChartView spec={draft.spec} />
+                </Suspense>
+              </ChartBoundary>
             </figure>
           ) : (
             <p className="text-sm text-muted">The chart appears here once the data reads cleanly.</p>

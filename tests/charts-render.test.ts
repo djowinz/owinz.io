@@ -28,6 +28,21 @@ describe("chart blocks in markdownToHtml", () => {
     expect(html).toContain("<th>v (kg)</th>");
   });
 
+  it("heads the x column with the x label when there is one", async () => {
+    expect(await markdownToHtml(block("type: bar\nx: { label: Quarter }\n---\nq,v\nQ1,1\nQ2,2"))).toContain(
+      "<tr><th>Quarter</th><th>v</th></tr>",
+    );
+    expect(await markdownToHtml(block("type: bar\n---\nq,v\nQ1,1\nQ2,2"))).toContain("<tr><th>q</th><th>v</th></tr>");
+  });
+
+  it("reserves ChartView's height for each layout", async () => {
+    const height = async (src: string) => (await markdownToHtml(block(src))).match(/--chart-height: (\d+)px/)?.[1];
+    expect(await height("type: line\n---\nq,a,b\nQ1,1,2\nQ2,2,3")).toBe("280");
+    expect(await height("type: pie\n---\nq,v\nQ1,1\nQ2,2")).toBe("320");
+    // Three panels of 16px name + 4px gap + 160px chart, 8px apart.
+    expect(await height("type: line\nlayout: stacked\n---\nq,a,b,c\nQ1,1,2,3\nQ2,2,3,4")).toBe("556");
+  });
+
   it("shows the first error and the raw block for an invalid chart", async () => {
     const html = await markdownToHtml(block("type: donut\n---\nq,v\nQ1,1"));
     expect(html).toContain('<figure class="chart chart-error">');

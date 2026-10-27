@@ -99,6 +99,9 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${fraunces.variable} ${frauncesItalic.variable} h-full antialiased`}
     >
       <body className="min-h-screen w-full">
+        {/* Runs before the first paint: marks JavaScript as on, so CSS can
+            swap a chart's fallback table for its reserved space (globals.css). */}
+        <script dangerouslySetInnerHTML={{ __html: 'document.documentElement.classList.add("js")' }} />
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

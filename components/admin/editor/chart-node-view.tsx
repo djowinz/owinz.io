@@ -8,6 +8,8 @@ import type { NodeViewRenderer } from "@tiptap/core";
 import type { Node as PMNode } from "@tiptap/pm/model";
 import { lazy, Suspense } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { ChartBoundary } from "@/components/charts/ChartBoundary";
+import { chartHeight } from "@/lib/charts/layout";
 import { parseChart } from "@/lib/charts/spec";
 import { buttonQuiet } from "../ui";
 
@@ -28,9 +30,11 @@ function ChartBlock({ source, onEdit }: { source: string; onEdit(): void }) {
               {result.spec.caption && <span className="chart-caption">{result.spec.caption}</span>}
             </figcaption>
           )}
-          <Suspense fallback={null}>
-            <ChartView spec={result.spec} />
-          </Suspense>
+          <ChartBoundary resetKey={source}>
+            <Suspense fallback={<div style={{ height: chartHeight(result.spec) }} />}>
+              <ChartView spec={result.spec} />
+            </Suspense>
+          </ChartBoundary>
         </>
       ) : (
         <>

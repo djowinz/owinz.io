@@ -23,6 +23,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import {
+  CHART_HEIGHT,
+  PANEL_GAP,
+  PANEL_HEIGHT,
+  PANEL_LABEL_GAP,
+  PANEL_LABEL_HEIGHT,
+  PIE_HEIGHT,
+} from "@/lib/charts/layout";
 import { PALETTE, colorVar } from "@/lib/charts/palette";
 import { markerX, toRechartsRows } from "@/lib/charts/recharts-data";
 import type { ChartSpec } from "@/lib/charts/spec";
@@ -63,9 +71,11 @@ interface PanelProps {
   syncId?: string;
   showLegend: boolean;
   showMarkerLabels: boolean;
+  /** Draw spec.x.label under the x axis (stacked panels: the last one only). */
+  showXLabel: boolean;
 }
 
-function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabels }: PanelProps) {
+function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabels, showXLabel }: PanelProps) {
   const timeAxis = spec.x.kind === "time";
   const numericAxis = spec.x.kind !== "category" && spec.type !== "bar";
   const dual = spec.layout === "dual";
@@ -73,6 +83,7 @@ function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabe
   const unitOf = (id: "left" | "right") =>
     indexes.map((i) => spec.series[i]).find((s) => (dual ? s.axis : "left") === id && s.unit)?.unit;
 
+  const xLabel = showXLabel ? spec.x.label : undefined;
   const fmtTime = timeFormatter(rows);
   const xTick = timeAxis ? fmtTime : undefined;
   const xValues = new Set(rows.map((r) => r.x));
@@ -117,6 +128,16 @@ function Panel({ spec, rows, indexes, height, syncId, showLegend, showMarkerLabe
       axisLine={{ stroke: EDGE }}
       stroke={EDGE}
       minTickGap={24}
+      // Category scatter: each series repeats the x values; keep one tick per category.
+      allowDuplicatedCategory={spec.type === "scatter" && !numericAxis ? false : undefined}
+      // A taller axis (default 30) leaves room for the label under the ticks,
+      // above any legend, which Recharts places below the axis.
+      height={xLabel ? 48 : 30}
+      label={
+        xLabel
+          ? { value: xLabel, position: "insideBottom", offset: 2, fill: MUTED, fontFamily: MONO, fontSize: 11 }
+          : undefined
+      }
     />
   );
   const yAxes = (dual ? (["left", "right"] as const) : (["left"] as const)).map((id) => (
@@ -241,21 +262,35 @@ export default function ChartView({ spec }: { spec: ChartSpec }) {
   const all = spec.series.map((_, i) => i);
 
   if (spec.layout === "stacked" && spec.type !== "pie") {
+    // Fixed line heights and gaps (no collapsing margins), so the total matches
+    // chartHeight() and the space the page reserved before this mounted.
     return (
-      <div>
+      <div style={{ display: "flex", flexDirection: "column", gap: PANEL_GAP }}>
         {all.map((i) => (
-          <div key={spec.series[i].name} className="mb-2">
-            <div style={{ color: MUTED, fontFamily: MONO, fontSize: 11 }} className="mb-1">
+          <div key={spec.series[i].name}>
+            <div
+              style={{
+                color: MUTED,
+                fontFamily: MONO,
+                fontSize: 11,
+                lineHeight: `${PANEL_LABEL_HEIGHT}px`,
+                marginBottom: PANEL_LABEL_GAP,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
               {spec.series[i].name}
             </div>
             <Panel
               spec={spec}
               rows={rows}
               indexes={[i]}
-              height={160}
+              height={PANEL_HEIGHT}
               syncId={syncId}
               showLegend={false}
               showMarkerLabels={i === 0}
+              showXLabel={i === all.length - 1}
             />
           </div>
         ))}
@@ -267,9 +302,10 @@ export default function ChartView({ spec }: { spec: ChartSpec }) {
       spec={spec}
       rows={rows}
       indexes={all}
-      height={spec.type === "pie" ? 320 : 280}
+      height={spec.type === "pie" ? PIE_HEIGHT : CHART_HEIGHT}
       showLegend={spec.series.length > 1 || spec.type === "pie"}
       showMarkerLabels
+      showXLabel
     />
   );
 }

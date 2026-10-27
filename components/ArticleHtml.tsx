@@ -3,43 +3,82 @@
 // Article HTML from the Markdown renderer, plus chart hydration: each
 // `figure.chart[data-chart]` placeholder gets an interactive ChartView mounted
 // into it. Recharts is dynamic-imported, so pages without charts never load it.
-import { useEffect, useRef } from "react";
+// Until a chart mounts, CSS (app/globals.css) hides the fallback table and
+// reserves the chart's height, so the page doesn't jump.
+import { useLayoutEffect, useRef } from "react";
 import { createRoot, type Root } from "react-dom/client";
+import { ChartBoundary } from "./charts/ChartBoundary";
 import type { ChartSpec } from "@/lib/charts/spec";
+
+type ChartViewModule = typeof import("./charts/ChartView");
+
+// Loaded once per page. After that, charts mount in the same commit as new
+// HTML (the editor preview re-renders on every typing pause) and never flicker.
+let chartView: ChartViewModule | null = null;
+let loading: Promise<ChartViewModule> | null = null;
+const loadChartView = () => (loading ??= import("./charts/ChartView").then((m) => (chartView = m)));
 
 export default function ArticleHtml({ html, className }: { html: string; className: string }) {
   const ref = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const host = ref.current;
     if (!host) return;
     const figures = Array.from(host.querySelectorAll<HTMLElement>("figure.chart[data-chart]"));
     if (!figures.length) return;
 
     let cancelled = false;
-    const roots: Root[] = [];
-    import("./charts/ChartView").then(({ default: ChartView }) => {
-      if (cancelled) return;
+    const mounted: { mount: HTMLElement; root: Root }[] = [];
+    // Shows the fallback table again (and the boundary's note) when a chart can't draw.
+    const fail = (figure: HTMLElement, mount?: HTMLElement) => {
+      figure.removeAttribute("data-hydrated");
+      figure.setAttribute("data-chart-failed", "");
+      mount?.removeAttribute("aria-hidden");
+    };
+
+    const mountAll = ({ default: ChartView }: ChartViewModule) => {
       for (const figure of figures) {
         let spec: ChartSpec;
         try {
           spec = JSON.parse(figure.dataset.chart ?? "");
         } catch {
-          continue; // leave the fallback table visible
+          fail(figure);
+          continue;
         }
         const mount = document.createElement("div");
         mount.setAttribute("aria-hidden", "true"); // the data table carries the content
         figure.appendChild(mount);
         const root = createRoot(mount);
-        root.render(<ChartView spec={spec} />);
-        roots.push(root);
+        // Rendered from a layout effect, this commits before the browser paints.
+        root.render(
+          <ChartBoundary onError={() => fail(figure, mount)}>
+            <ChartView spec={spec} />
+          </ChartBoundary>,
+        );
+        mounted.push({ mount, root });
         figure.setAttribute("data-hydrated", "");
       }
-    });
+    };
+
+    if (chartView) mountAll(chartView);
+    else {
+      loadChartView().then(
+        (m) => !cancelled && mountAll(m),
+        () => !cancelled && figures.forEach((f) => fail(f)),
+      );
+    }
 
     return () => {
       cancelled = true;
+      // Leave the figures as the server sent them, so a re-run (HMR, Strict
+      // Mode) on the same DOM mounts each chart once.
+      for (const { mount } of mounted) mount.remove();
+      for (const figure of figures) {
+        figure.removeAttribute("data-hydrated");
+        figure.removeAttribute("data-chart-failed");
+      }
       // Unmounting a root during React's own commit warns; defer it.
+      const roots = mounted.map((m) => m.root);
       queueMicrotask(() => roots.forEach((r) => r.unmount()));
     };
   }, [html]);

@@ -4,6 +4,7 @@
 // error plus its source; the renderer never throws.
 import type { Element, ElementContent, Root } from "hast";
 import { SKIP, visit } from "unist-util-visit";
+import { chartHeight } from "./layout";
 import { parseChart, type ChartSpec } from "./spec";
 
 function element(
@@ -38,7 +39,7 @@ function dataFigure(spec: ChartSpec): Element {
   const table = element(
     "table",
     [
-      element("thead", [element("tr", [cell("th", spec.x.name), ...labels.map((l) => cell("th", l))])]),
+      element("thead", [element("tr", [cell("th", spec.x.label || spec.x.name), ...labels.map((l) => cell("th", l))])]),
       element(
         "tbody",
         spec.rows.map((row) =>
@@ -54,6 +55,8 @@ function dataFigure(spec: ChartSpec): Element {
 
   return element("figure", [...(caption.length ? [element("figcaption", caption)] : []), table], {
     className: ["chart"],
+    // ChartView's height, so the page reserves it while the chart loads (globals.css).
+    style: `--chart-height: ${chartHeight(spec)}px`,
     // Escape the "<" so the attribute holds no raw tag text (still the same JSON).
     dataChart: JSON.stringify(spec).replace(/</g, "\\u003c"),
   });
