@@ -1,6 +1,8 @@
 # AI writing assistant: brainstorm record
 
-**Status:** brainstorm complete enough to design from; no formal design doc or plan yet.
+**Status:** brainstorm complete. **The design doc is `2026-10-31-ai-writing-assistant-design.md`
+(builder-checked); it supersedes this record where they differ.** Planning happens next, possibly
+on another machine: two plans, the full-width CMS shell first, then the assistant.
 **Next step:** turn this into `YYYY-MM-DD-ai-writing-assistant-design.md` (design doc, then builder
 check, then implementation plan). Everything below is either **decided by Dyllen**, **my call
 (Claude), stated to him and open to change**, or **open**. When they conflict, Dyllen's decisions win.
