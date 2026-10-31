@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Write · CMS mock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,500&family=Geist:wght@400;500;600&family=Geist+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --background:#141311; --sidebar:#1b1a17; --foreground:#f0ece3; --muted:#8f8a7f;
+    --edge:#2d2b26; --accent:#b69bff; --secondary:#24221e;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html, body { height:100%; }
+  body { background:var(--background); color:var(--foreground); font-family:"Geist",system-ui,sans-serif; font-size:15px; }
+  .label { font-family:"Geist Mono",monospace; font-weight:500; text-transform:uppercase; color:var(--muted); font-size:10px; letter-spacing:1.4px; }
+  .accent { color:var(--accent); }
+
+  /* Full window width in the editor: rail | write column | assistant panel */
+  .shell { display:grid; grid-template-columns:232px minmax(0,1fr) 520px; height:100vh; }
+  aside { background:var(--sidebar); border-right:1px solid var(--edge); padding:28px 26px; display:flex; flex-direction:column; }
+  .brand { font-family:"Fraunces",serif; font-size:19px; font-weight:400; }
+  nav { margin-top:28px; display:flex; flex-direction:column; gap:12px; font-size:14px; color:#c9c4b9; }
+  nav .on { font-family:"Fraunces",serif; font-style:italic; font-weight:500; color:var(--accent); }
+  .who { margin-top:auto; font-size:13px; }
+
+  main { overflow:auto; min-width:0; }
+  .bar { position:sticky; top:0; display:flex; align-items:center; gap:22px; border-bottom:1px solid var(--edge); background:rgba(20,19,17,.95); padding:16px 56px; z-index:2; }
+  .bar .right { margin-left:auto; display:flex; align-items:center; gap:22px; }
+  .primary { background:var(--foreground); color:var(--background); font-size:14px; padding:12px 22px; }
+  .write { max-width:820px; padding:44px 56px 80px; }
+  .title { font-family:"Fraunces",serif; font-weight:300; font-size:40px; letter-spacing:-0.03em; line-height:1.1; }
+  .dek { font-family:"Fraunces",serif; font-style:italic; font-weight:300; font-size:18px; color:var(--muted); margin-top:10px; line-height:1.4; }
+  .count { text-align:right; margin-top:6px; }
+  .fields { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-top:28px; }
+  .field .label { display:block; margin-bottom:7px; }
+  .in { border:1px solid var(--edge); padding:11px 13px; font-size:14px; color:#d8d3c9; }
+  .in.mono { font-family:"Geist Mono",monospace; font-size:13px; }
+  .full { grid-column:1 / -1; }
+  .modes { display:flex; justify-content:space-between; margin:34px 0 10px; }
+  .modes .l { display:flex; gap:18px; }
+  .editor { border:1px solid var(--edge); }
+  .tools { display:flex; gap:14px; align-items:center; border-bottom:1px solid var(--edge); padding:10px 14px; font-family:"Geist Mono",monospace; font-size:11px; color:var(--muted); }
+  .body { padding:24px 22px 34px; font-size:16.5px; line-height:1.75; color:#cfcabf; }
+  .body p { margin-bottom:16px; }
+  .drop { font-family:"Fraunces",serif; font-weight:300; color:var(--accent); float:left; font-size:72px; line-height:.85; margin:6px 12px 0 0; }
+  .body h2 { font-family:"Fraunces",serif; font-style:italic; font-weight:500; font-size:24px; color:var(--foreground); margin:28px 0 10px; }
+  .caret { display:inline-block; width:1px; height:20px; background:var(--foreground); vertical-align:-4px; }
+
+  /* Assistant panel: its own column, full height, scrolls on its own */
+  .panel { border-left:1px solid var(--edge); background:var(--sidebar); display:flex; flex-direction:column; min-height:0; }
+  .phead { display:flex; justify-content:space-between; align-items:center; padding:18px 32px; border-bottom:1px solid var(--edge); }
+  .tabs { display:flex; gap:22px; }
+  .tabs .label { font-size:11px; }
+  .pbody { flex:1; overflow:auto; padding:30px 32px 24px; }
+  .idea { font-family:"Fraunces",serif; font-style:italic; font-weight:300; font-size:20px; line-height:1.45; color:#e4dfd4; margin-top:12px; }
+  .skel { margin-top:36px; }
+  .skel > .label { margin-bottom:6px; display:block; }
+  .row { display:grid; grid-template-columns:30px 1fr auto; gap:14px; padding:20px 0; border-bottom:1px solid var(--edge); }
+  .row .n { font-family:"Geist Mono",monospace; font-size:12px; color:var(--muted); padding-top:4px; }
+  .row .t { font-family:"Fraunces",serif; font-style:italic; font-weight:500; font-size:20px; letter-spacing:-0.2px; }
+  .row .j { font-size:14.5px; color:var(--muted); margin-top:6px; line-height:1.55; }
+  .row.here { box-shadow:inset 2px 0 0 var(--accent); padding-left:16px; margin-left:-18px; }
+  .row.here .t { color:var(--accent); }
+  .row .s { padding-top:6px; }
+  .actions { display:flex; gap:24px; margin-top:20px; }
+  .note { border-left:2px solid var(--accent); padding-left:16px; margin-top:34px; font-size:15px; line-height:1.6; color:#d8d3c9; }
+  .pfoot { border-top:1px solid var(--edge); padding:18px 32px 22px; }
+  .ask { border:1px solid var(--edge); background:var(--background); padding:13px 14px; font-size:14px; color:var(--muted); }
+  .pfoot .go { display:flex; justify-content:space-between; align-items:center; margin-top:14px; }
+  .secondary { border:1px solid var(--edge); background:var(--background); font-size:14px; padding:11px 18px; }
+  .switch { display:flex; border:1px solid var(--edge); }
+  .switch .opt { font-family:"Geist Mono",monospace; font-weight:500; text-transform:uppercase; font-size:10px; letter-spacing:1.4px; padding:7px 12px; color:var(--muted); }
+  .switch .opt.on { background:var(--foreground); color:var(--background); }
+  .crumbs { display:flex; gap:14px; border-bottom:1px solid var(--edge); padding-bottom:14px; }
+  .job { margin-top:22px; }
+  .job p { font-family:"Fraunces",serif; font-style:italic; font-weight:300; font-size:19px; line-height:1.45; color:#e4dfd4; margin-top:10px; }
+  .notes { margin-top:10px; border:1px solid var(--edge); background:var(--background); padding:16px; font-family:"Geist Mono",monospace; font-size:13px; line-height:1.85; color:#d8d3c9; }
+  .redo { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .chip { border:1px solid var(--edge); padding:7px 11px; font-size:13px; color:#d8d3c9; }
+  .sugg { border-left:2px solid var(--accent); background:rgba(182,155,255,.06); padding:4px 16px 2px; margin:0 -6px 8px; }
+  .sbar { display:flex; justify-content:space-between; align-items:center; padding:8px 0 10px; }
+  .sact { display:flex; gap:16px; align-items:center; }
+  .acc { background:var(--foreground); color:var(--background); font-size:13px; padding:6px 12px; }
+  .sugg p { color:#e2ddd2; }
+  .ptabs { display:flex; gap:26px; padding:0 32px; border-bottom:1px solid var(--edge); }
+  .ptabs .label { font-size:11px; padding:14px 0 12px; }
+  .ptabs .on { box-shadow:inset 0 -2px 0 var(--accent); }
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand">owinz.io</div>
+    <div class="label" style="margin-top:2px">CMS</div>
+    <nav>
+      <span>Overview</span><span class="on">Writing</span><span>Projects</span><span>Talks</span><span>Categories &amp; tags</span><span>People</span>
+    </nav>
+    <div class="who">dyllen<div class="label">Editor</div>
+      <div class="label" style="margin-top:22px">View site ↗</div><div class="label" style="margin-top:8px">Sign out</div>
+    </div>
+  </aside>
+
+  <main>
+    <div class="bar">
+      <span class="label">← Writing</span>
+      <span class="label">Draft</span>
+      <span class="label">Saved 11:55</span>
+      <div class="right">
+        <span class="label">Preview ↗</span><span class="label">Export .md</span><span class="label">History</span><span class="label">Delete</span>
+        <span class="primary">Publish</span>
+      </div>
+    </div>
+
+    <div class="write">
+      <div class="title">AI made us faster at shipping and slower at recovering</div>
+      <div class="dek">Lead time to change fell by half. Time to recover doubled. It's the same story.</div>
+      <div class="label count">84 / 70–170</div>
+      <div class="fields">
+        <div class="field full"><span class="label">URL</span><div class="in mono"><span style="color:var(--muted)">/writing/</span>faster-shipping-slower-recovery</div></div>
+        <div class="field"><span class="label">Category</span><div class="in">Engineering</div></div>
+        <div class="field"><span class="label">Byline</span><div class="in" style="color:var(--muted)">Dyllen Owens</div></div>
+      </div>
+      <div class="modes">
+        <div class="l"><span class="label accent">Visual</span><span class="label">Markdown</span></div>
+        <div class="l"><span class="label">Hide panel</span></div>
+      </div>
+      <div class="editor">
+        <div class="tools"><b>B</b><i>I</i><s>S</s><span>Link</span><span>H2</span><span>H3</span><span>Quote</span><span>• List</span><span>1. List</span><span>Code</span><span>{ }</span><span>Chart</span><span>—</span></div>
+        <div class="body">
+          <p><span class="drop">O</span>ver two quarters our lead time to change dropped by more than half. In the same stretch, the time it took us to recover from an incident doubled. I don't think that's a coincidence, and I don't think the answer is to slow down.</p>
+          <h2>The numbers</h2>
+          <div class="sugg">
+            <div class="sbar"><span class="label accent">Suggested · section 02</span><span class="sact"><span class="acc">Accept</span><span class="label">Reject</span></span></div>
+            <p>Here's what the last two quarters looked like for one team, on the same services, with no reorg in between. Lead time to change fell from just over six days to two and a half. Over the same weeks, the time it took to recover from an incident went from about three hours to more than seven.</p>
+            <p>The lines cross in late May, a few weeks after we started using AI coding tools across the team. I'm not going to claim the tools caused both trends on their own. But the timing is hard to ignore, and so is the shape: every week we got faster at shipping, we got slower at fixing what we shipped.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <section class="panel">
+    <div class="phead">
+      <div class="switch"><span class="opt on">Assistant</span><span class="opt">Site preview</span></div>
+      <span class="label">✕</span>
+    </div>
+    <div class="ptabs"><span class="label">Shape</span><span class="label accent on">Write</span><span class="label">Research</span><span class="label">Review</span></div>
+    <div class="pbody">
+      <div class="crumbs">
+        <span class="label">01 ✓</span><span class="label accent">02 The numbers</span><span class="label">03</span><span class="label">04</span><span class="label">05</span>
+      </div>
+      <div class="job"><span class="label">This section's job</span><p>Show the chart. Prove it's real, not noise: two quarters, same team.</p></div>
+
+      <div class="label" style="margin-top:28px">Your notes</div>
+      <div class="notes">
+        lead time 6.2d → 2.5d, MTTR 3.1h → 7.6h, Apr–Aug<br>
+        same team, same services, no reorg, so it's not a team-change thing<br>
+        we adopted copilot-style tools in april, roughly when the lines cross<br>
+        don't oversell causation, just "hard to ignore"<br>
+        the chart is already in the draft above this
+      </div>
+
+      <div class="note"><b class="accent">Drafted</b> section 02 from your notes into the editor (about 140 words). It's a suggestion: accept it, reject it, or tell me what to change.</div>
+      <div class="redo">
+        <span class="chip">Shorter</span><span class="chip">More direct</span><span class="chip">Less hedging</span><span class="chip">Lead with the chart</span>
+      </div>
+    </div>
+    <div class="pfoot">
+      <div class="ask">Tell me what to change, or add to your notes…</div>
+      <div class="go"><span class="label">Draft again</span><span class="secondary">Next: 03 Why they moved together →</span></div>
+    </div>
+  </section>
+</div>
+</body>
+</html>
